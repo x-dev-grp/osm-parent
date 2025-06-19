@@ -1,55 +1,59 @@
 name: Deploy Parent to GitHub Maven
 
 on:
+  # Build every push to main that touches the parent or its workflow
   push:
     branches: [ main ]
     paths:
-      - 'xdev-parent/**'                 # <—— was osm-parent/**
-      - '.github/workflows/deploy-parent.yml'
+      - 'pom.xml'
+      - 'xdev-base/**'
+      - 'xdev-security/**'
+      - '.github/workflows/maven-publish.yml'
+  # Manual trigger
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # ↓ lets the job push artifacts to GitHub Packages
+    # Needed to upload to GitHub Packages
     permissions:
       contents: read
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      # 1) Check out the repo
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Java & cache
+      # 2) Install JDK 21 and enable Maven cache
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+          # Inject GitHub Packages creds automatically
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
 
-      # If you prefer a settings.xml on disk, keep this step.
-      # The setup-java block above already injects identical credentials,
-      # so the file is technically optional.
-      - name: (Optional) create settings.xml
-        if: ${{ always() }}            # remove this line to omit the file entirely
+      # 3) Create settings.xml with the same credentials (optional but explicit)
+      - name: Create Maven settings.xml
         run: |
           mkdir -p ~/.m2
           cat > ~/.m2/settings.xml <<EOF
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
             <servers>
               <server>
                 <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.GITHUB_TOKEN }}</password>
+                <username>\${env.GITHUB_ACTOR}</username>
+                <password>\${env.GITHUB_TOKEN}</password>
               </server>
             </servers>
           </settings>
           EOF
 
+      # 4) Build & deploy the parent POM
       - name: Build & deploy parent POM
-        working-directory: xdev-parent   # <—— easiest: cd first
-        run: mvn -B -s ~/.m2/settings.xml clean deploy -DskipTests
-        # (If you prefer -f, use:  mvn … -f xdev-parent/pom.xml)
+        run: mvn -B -s ~/.m2/settings.xml --no-transfer-progress clean deploy -DskipTests
