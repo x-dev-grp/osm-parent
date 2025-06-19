@@ -19,7 +19,7 @@
         <repository>
             <id>github</id>                                  <!-- must match workflow & settings.xml -->
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/x-dev-grp/osm-parentt</url>
+            <url>https://maven.pkg.github.com/x-dev-grp/osm-parent</url>
         </repository>
     </distributionManagement>
     <developers>
