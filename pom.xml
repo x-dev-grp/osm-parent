@@ -15,7 +15,13 @@
     <name>xdev-parent</name>
     <description>xdev-parent</description>
     <url/>
-
+    <distributionManagement>
+        <repository>
+            <id>github</id>                                  <!-- must match workflow & settings.xml -->
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/x-dev-grp/xdev-parent</url>
+        </repository>
+    </distributionManagement>
     <developers>
         <developer>
             <name>Wissem Mlouka</name>
