@@ -1,14 +1,11 @@
-# .github/workflows/deploy-parent.yml
 name: Deploy Parent to GitHub Maven
 
 on:
-  # publish every time the parent pom changes
   push:
     branches: [ main ]
     paths:
-      - 'osm-parent/**'
+      - 'xdev-parent/**'                 # <—— was osm-parent/**
       - '.github/workflows/deploy-parent.yml'
-  # manual trigger (handy for hot-fixes or tags)
   workflow_dispatch:
 
 jobs:
@@ -21,18 +18,15 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java & Maven cache
+      - name: Set up Java & cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
-
-          # these four lines wire Maven ↔ GH Packages without a custom step
-          server-id: github           # must match <id> in pom.xml
+          server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
 
@@ -56,4 +50,6 @@ jobs:
           EOF
 
       - name: Build & deploy parent POM
-        run: mvn -B -s ~/.m2/settings.xml clean deploy -f osm-parent/pom.xml -DskipTests
+        working-directory: xdev-parent   # <—— easiest: cd first
+        run: mvn -B -s ~/.m2/settings.xml clean deploy -DskipTests
+        # (If you prefer -f, use:  mvn … -f xdev-parent/pom.xml)
