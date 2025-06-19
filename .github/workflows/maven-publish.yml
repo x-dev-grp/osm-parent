@@ -1,0 +1,59 @@
+# .github/workflows/deploy-parent.yml
+name: Deploy Parent to GitHub Maven
+
+on:
+  # publish every time the parent pom changes
+  push:
+    branches: [ main ]
+    paths:
+      - 'osm-parent/**'
+      - '.github/workflows/deploy-parent.yml'
+  # manual trigger (handy for hot-fixes or tags)
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # ↓ lets the job push artifacts to GitHub Packages
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java & Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+          # these four lines wire Maven ↔ GH Packages without a custom step
+          server-id: github           # must match <id> in pom.xml
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      # If you prefer a settings.xml on disk, keep this step.
+      # The setup-java block above already injects identical credentials,
+      # so the file is technically optional.
+      - name: (Optional) create settings.xml
+        if: ${{ always() }}            # remove this line to omit the file entirely
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Build & deploy parent POM
+        run: mvn -B -s ~/.m2/settings.xml clean deploy -f osm-parent/pom.xml -DskipTests
