@@ -43,10 +43,8 @@ public class ResourceServerConfig {
                 .cors(httpSecurityCorsConfigurer -> new CorsConfig())
                 .authorizeHttpRequests(registry -> {
                     registry
-                            .requestMatchers(WHITELIST).permitAll()
-                            .anyRequest().authenticated();
+                            .anyRequest().permitAll();
                 })
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
                 .build();
     }
 
