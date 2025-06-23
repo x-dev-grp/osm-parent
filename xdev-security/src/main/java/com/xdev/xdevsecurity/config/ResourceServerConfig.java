@@ -40,7 +40,10 @@ public class ResourceServerConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(httpSecurityCorsConfigurer -> new CorsConfig())
+                .cors(
+                        cors->cors.disable()
+//                        -> new CorsConfig()
+                )
                 .authorizeHttpRequests(registry -> {
                     registry
                             .anyRequest().permitAll();
