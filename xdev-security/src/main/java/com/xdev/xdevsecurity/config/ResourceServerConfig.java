@@ -40,14 +40,12 @@ public class ResourceServerConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(
-                        cors->cors.disable()
-//                        -> new CorsConfig()
-                )
                 .authorizeHttpRequests(registry -> {
                     registry
-                            .anyRequest().permitAll();
+                            .requestMatchers(WHITELIST).permitAll()
+                            .anyRequest().authenticated();
                 })
+                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
                 .build();
     }
 
