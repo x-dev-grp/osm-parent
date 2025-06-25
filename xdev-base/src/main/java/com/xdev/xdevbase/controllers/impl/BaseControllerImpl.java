@@ -146,13 +146,17 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
       public ResponseEntity<SearchResponse<E,OUTDTO>> advancedSearch(@RequestBody SearchData searchData, Authentication authentication) {
           final String resource = getResourceName();
           Set<String> actions=extractResourcePermissions(authentication,resource);
+          String role=extractResourceRole(authentication);
           SearchResponse<E,OUTDTO> response = baseService.search(searchData);
           List<OUTDTO> dtos = response.getData().stream().map(
                   element -> {
                       E entity=modelMapper.map(element,baseService.getEntityClass());
-                      Set<String> filteredActions=baseService.actionsMapping(entity).stream().filter(
-                              a->actions.contains(a)
-                      ).collect(Collectors.toSet());
+                      Set<String> filteredActions=baseService.actionsMapping(entity);
+                      if(!(role.equalsIgnoreCase("ADMIN"))){
+                          filteredActions=filteredActions.stream().filter(
+                                  a->actions.contains(a)
+                          ).collect(Collectors.toSet());
+                      }
                       element.setActions(filteredActions);
                       return element;
                   }
@@ -160,6 +164,30 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
           response.setData(dtos);
           return ResponseEntity.ok(response);
     }
+
+    private String extractResourceRole(Authentication authentication) {
+        // 1) Try to reflectively call getClaims() on the principal
+        Object principal = authentication.getPrincipal();
+        Map<String,Object> claims = null;
+        try {
+            Method m = principal.getClass().getMethod("getClaims");
+            Object maybeClaims = m.invoke(principal);
+            if (maybeClaims instanceof Map<?,?>) {
+                claims = (Map<String,Object>) maybeClaims;
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            // principal doesn’t have getClaims() or something went wrong → we'll ignore
+        }
+
+        // 2) From the claims map pull out “authorities” if present
+        List<String> rawAuthorities = Collections.emptyList();
+        if (claims != null) {
+           return claims.get("role").toString();
+
+        }
+    return "ADMIN";
+    }
+
     @SuppressWarnings("unchecked")
     private Set<String> extractResourcePermissions(Authentication authentication, String resource) {
         if (authentication == null || resource == null) {
