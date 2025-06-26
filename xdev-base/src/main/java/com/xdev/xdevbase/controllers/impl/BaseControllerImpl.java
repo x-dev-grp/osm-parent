@@ -119,6 +119,16 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
         }
 
     }
+
+    @Override
+    public ResponseEntity<?> delete(UUID id) {
+        try {
+            baseService.delete(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }    }
+
     @Override
     public RevisionDto<E> findLastRevision(@PathVariable UUID id) {
         Optional<Revision<Integer, E>> revisionOptional = baseService.findLastRevisionById(id);

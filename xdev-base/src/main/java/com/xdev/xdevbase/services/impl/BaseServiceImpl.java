@@ -192,14 +192,14 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     }
 
     @Override
-    public OUTDTO delete(INDTO request) {
-        if (request == null || request.getId() == null) {
-            LOGGER.debug("Request or ID is null: {}", request);
+    public OUTDTO delete(UUID id) {
+        if (id == null) {
+            LOGGER.debug(" ID is null: {}",id);
             return null;
         }
-        E entity = repository.findById(request.getId()).orElse(null);
+        E entity = repository.findById(id).orElse(null);
         if (entity == null) {
-            LOGGER.debug("No such entity with id = {}", request.getId());
+            LOGGER.debug("No such entity with id = {}", id);
             return null;
         }
         LOGGER.debug("Logical delete start");

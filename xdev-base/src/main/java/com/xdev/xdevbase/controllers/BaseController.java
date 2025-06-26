@@ -40,6 +40,8 @@ public interface BaseController<E extends BaseEntity,INDTO extends BaseDto<E>,OU
     );
     @DeleteMapping("/remove/{id}")
      ResponseEntity<?> remove(@PathVariable UUID id);
+    @DeleteMapping("/delete/{id}")
+    ResponseEntity<?> delete(@PathVariable UUID id);
     @GetMapping(value = "/lastRevision/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public RevisionDto<E> findLastRevision(@PathVariable UUID id);
     @GetMapping(value = "/allRevision/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -29,7 +29,7 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
     OUTDTO update(INDTO entity);
 
     void remove(UUID id);
-    OUTDTO delete(INDTO entity);
+    OUTDTO delete(UUID entity);
 
     void removeAll(Collection<INDTO> entities);
 
