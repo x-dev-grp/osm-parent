@@ -108,5 +108,6 @@
     <!-- <module>trade-authenticator</module> -->
          <module>xdev-base</module>
          <module>xdev-security</module>
+         <module>comunicator</module>
     </modules>
 </project>
