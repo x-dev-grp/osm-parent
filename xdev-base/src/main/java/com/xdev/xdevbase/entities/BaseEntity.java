@@ -43,13 +43,13 @@ public class BaseEntity implements Serializable {
     private LocalDateTime lastModifiedDate;
 
 
-    public Optional<String> getCreatedBy() {
-        return Optional.of(createdBy);
+    public String getCreatedBy() {
+        return createdBy;
     }
 
 
-    public Optional<String> getLastModifiedBy() {
-        return Optional.of(lastModifiedBy);
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
     }
 
     public UUID getId() {
