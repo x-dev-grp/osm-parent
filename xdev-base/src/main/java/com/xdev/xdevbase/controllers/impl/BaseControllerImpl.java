@@ -2,6 +2,7 @@ package com.xdev.xdevbase.controllers.impl;
 
 import com.sun.security.auth.UserPrincipal;
 import com.xdev.xdevbase.apiDTOs.ApiResponse;
+import com.xdev.xdevbase.apiDTOs.ApiSingleResponse;
 import com.xdev.xdevbase.apiDTOs.SearchResponse;
 import com.xdev.xdevbase.controllers.BaseController;
 import com.xdev.xdevbase.dtos.BaseDto;
@@ -48,12 +49,12 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
     }
 
     @Override
-    public ResponseEntity<ApiResponse<E, OUTDTO>> findDtoByUuid(@PathVariable UUID id) {
+    public ResponseEntity<ApiSingleResponse<E, OUTDTO>> findDtoByUuid(@PathVariable UUID id) {
         try {
             OUTDTO e = baseService.findById(id);
-            return ResponseEntity.ok(new ApiResponse<E, OUTDTO>(true, "", List.of(e)));
+            return ResponseEntity.ok(new ApiSingleResponse<E, OUTDTO>(true, "", e));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<E, OUTDTO>(false, e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiSingleResponse<E, OUTDTO>(false, e.getMessage(), null));
         }
 
     }
@@ -83,27 +84,27 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
     }
 
     @Override
-    public ResponseEntity<ApiResponse<E, OUTDTO>> create(
+    public ResponseEntity<ApiSingleResponse<E, OUTDTO>> create(
     @RequestBody INDTO dto
     ) {
         try {
             OUTDTO savedEntity = baseService.save(dto);
-            return ResponseEntity.ok(new ApiResponse<E, OUTDTO>(true, "", List.of(savedEntity)));
+            return ResponseEntity.ok(new ApiSingleResponse<E, OUTDTO>(true, "", savedEntity));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<E, OUTDTO>(false, e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiSingleResponse<E, OUTDTO>(false, e.getMessage(), null));
         }
 
     }
 
     @Override
-    public ResponseEntity<ApiResponse<E, OUTDTO>> update(
+    public ResponseEntity<ApiSingleResponse<E, OUTDTO>> update(
             @RequestBody INDTO dto
     ) {
         try {
             OUTDTO savedEntity = baseService.update(dto);
-            return ResponseEntity.ok(new ApiResponse<E, OUTDTO>(true, "", List.of(savedEntity)));
+            return ResponseEntity.ok(new ApiSingleResponse<E, OUTDTO>(true, "", savedEntity));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<E, OUTDTO>(false, e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiSingleResponse<E, OUTDTO>(false, e.getMessage(), null));
         }
 
     }

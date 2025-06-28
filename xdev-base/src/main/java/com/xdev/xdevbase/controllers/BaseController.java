@@ -1,6 +1,7 @@
 package com.xdev.xdevbase.controllers;
 
 import com.xdev.xdevbase.apiDTOs.ApiResponse;
+import com.xdev.xdevbase.apiDTOs.ApiSingleResponse;
 import com.xdev.xdevbase.apiDTOs.SearchResponse;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.dtos.RevisionDto;
@@ -22,7 +23,7 @@ public interface BaseController<E extends BaseEntity,INDTO extends BaseDto<E>,OU
      BaseService<E, INDTO, OUTDTO> getBaseService();
 
     @GetMapping(value = "/fetch/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<ApiResponse<E, OUTDTO>> findDtoByUuid(@PathVariable UUID id);
+    ResponseEntity<ApiSingleResponse<E, OUTDTO>> findDtoByUuid(@PathVariable UUID id);
 
     @GetMapping(value = "/fetchAll", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<E,OUTDTO>>   fetchAll();
@@ -31,11 +32,11 @@ public interface BaseController<E extends BaseEntity,INDTO extends BaseDto<E>,OU
     public ResponseEntity<ApiResponse<E, OUTDTO>> fetchAllPageable(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam(required = false, defaultValue = "createdDate") String sort, @RequestParam(required = false, defaultValue = "DESC") String direction
     );
     @PostMapping
-    public ResponseEntity<ApiResponse<E, OUTDTO>> create(
+    public ResponseEntity<ApiSingleResponse<E, OUTDTO>> create(
             @RequestBody INDTO dto
     );
     @PutMapping
-    public ResponseEntity<ApiResponse<E, OUTDTO>> update(
+    public ResponseEntity<ApiSingleResponse<E, OUTDTO>> update(
             @RequestBody INDTO dto
     );
     @DeleteMapping("/remove/{id}")
