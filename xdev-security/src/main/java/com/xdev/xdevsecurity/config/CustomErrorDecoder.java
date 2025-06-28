@@ -1,7 +1,6 @@
-package com.xdev.communicator.config;
+package com.xdev.xdevsecurity.config;
 
-import com.xdev.communicator.exceptions.ServiceException;
-import feign.Response;
+ import feign.Response;
 import feign.codec.ErrorDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,17 +16,17 @@ public class CustomErrorDecoder implements ErrorDecoder {
 
         switch (response.status()) {
             case 400:
-                return new ServiceException("Bad request to service: " + methodKey);
+                return new Exception("Bad request to service: " + methodKey);
             case 401:
-                return new ServiceException("Unauthorized access to service: " + methodKey);
+                return new Exception("Unauthorized access to service: " + methodKey);
             case 403:
-                return new ServiceException("Forbidden access to service: " + methodKey);
+                return new Exception("Forbidden access to service: " + methodKey);
             case 404:
-                return new ServiceException("Service not found: " + methodKey);
+                return new Exception("Service not found: " + methodKey);
             case 500:
-                return new ServiceException("Internal server error in service: " + methodKey);
+                return new Exception("Internal server error in service: " + methodKey);
             case 503:
-                return new ServiceException("Service unavailable: " + methodKey);
+                return new Exception("Service unavailable: " + methodKey);
             default:
                 return defaultErrorDecoder.decode(methodKey, response);
         }
