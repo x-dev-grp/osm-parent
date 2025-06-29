@@ -41,6 +41,8 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
     byte[] exportToCsv(ExportDetails exportDetails);
     byte[] exportToExcel(ExportDetails exportDetails);
     default Set<String> actionsMapping(E entity){
-         return Set.of();
+        Set<String> actions = new HashSet<>();
+        actions.addAll(Set.of("UPDATE", "DELETE","READ"));
+        return actions;
      }
 }

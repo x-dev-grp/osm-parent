@@ -1,6 +1,7 @@
 package com.xdev.xdevbase.entities;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.NaturalId;
 import org.hibernate.envers.Audited;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -42,6 +43,17 @@ public class BaseEntity implements Serializable {
     @Column(name = "MODIFIED_DATE_TIME")
     private LocalDateTime lastModifiedDate;
 
+    @NaturalId
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID externalId ;
+
+    public UUID getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(UUID externalId) {
+        this.externalId = externalId;
+    }
 
     public String getCreatedBy() {
         return createdBy;
@@ -95,7 +107,9 @@ public class BaseEntity implements Serializable {
 
     @PrePersist
     protected void onCreate() {
-        setCreatedDate(LocalDateTime.now());
+        if (externalId == null) {
+            externalId = UUID.randomUUID();
+        } setCreatedDate(LocalDateTime.now());
         setLastModifiedDate(LocalDateTime.now());
     }
 

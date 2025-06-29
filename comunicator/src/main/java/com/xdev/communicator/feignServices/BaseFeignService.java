@@ -10,16 +10,23 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 public class BaseFeignService <INDTO  extends BaseDto,OUTDTO extends BaseDto>{
     private static final Logger log = LoggerFactory.getLogger(BaseFeignService.class);
 
     protected final BaseFeignController< INDTO, OUTDTO> baseFeignController;
+    
+    @Autowired(required = false)
+    @Qualifier("feignExecutor")
+    private Executor feignExecutor;
 
     public BaseFeignService(BaseFeignController<INDTO, OUTDTO> baseFeignController) {
         this.baseFeignController = baseFeignController;
@@ -29,116 +36,211 @@ public class BaseFeignService <INDTO  extends BaseDto,OUTDTO extends BaseDto>{
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ApiSingleResponse<OUTDTO>> findById(UUID id) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ApiSingleResponse<OUTDTO> response = baseFeignController.findDtoByUuid(id).getBody();
-                validateResponse(response);
-                return response;
-            } catch (Exception e) {
-                log.error("Error finding entity by id: {}", id, e);
-                throw new ServiceException("Failed to find entity", e);
-            }
-        });
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.findDtoByUuid(id).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error finding entity by id: {}", id, e);
+                    throw new ServiceException("Failed to find entity", e);
+                }
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.findDtoByUuid(id).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error finding entity by id: {}", id, e);
+                    throw new ServiceException("Failed to find entity", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "fetchAllFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ApiResponse<OUTDTO>> fetchAll() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ApiResponse<OUTDTO> response = baseFeignController.fetchAll().getBody();
-                validateListResponse(response);
-                return response;
-            } catch (Exception e) {
-                log.error("Error fetching all entities", e);
-                throw new ServiceException("Failed to fetch all entities", e);
-            }
-        });
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiResponse<OUTDTO> response = baseFeignController.fetchAll().getBody();
+                    validateListResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error fetching all entities", e);
+                    throw new ServiceException("Failed to fetch all entities", e);
+                }
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiResponse<OUTDTO> response = baseFeignController.fetchAll().getBody();
+                    validateListResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error fetching all entities", e);
+                    throw new ServiceException("Failed to fetch all entities", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "fetchAllPageableFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ApiResponse<OUTDTO>> fetchAllPageable(int page, int size, String sort, String direction) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ApiResponse<OUTDTO> response = baseFeignController.fetchAllPageable(page, size, sort, direction).getBody();
-                validateListResponse(response);
-                return response;
-            } catch (Exception e) {
-                log.error("Error fetching pageable entities with page: {}, size: {}", page, size, e);
-                throw new ServiceException("Failed to fetch pageable entities", e);
-            }
-        });
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiResponse<OUTDTO> response = baseFeignController.fetchAllPageable(page, size, sort, direction).getBody();
+                    validateListResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error fetching pageable entities with page: {}, size: {}", page, size, e);
+                    throw new ServiceException("Failed to fetch pageable entities", e);
+                }
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiResponse<OUTDTO> response = baseFeignController.fetchAllPageable(page, size, sort, direction).getBody();
+                    validateListResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error fetching pageable entities with page: {}, size: {}", page, size, e);
+                    throw new ServiceException("Failed to fetch pageable entities", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "createFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ApiSingleResponse<OUTDTO>> create(INDTO dto) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ApiSingleResponse<OUTDTO> response = baseFeignController.create(dto).getBody();
-                validateResponse(response);
-                return response;
-            } catch (Exception e) {
-                log.error("Error creating entity: {}", dto, e);
-                throw new ServiceException("Failed to create entity", e);
-            }
-        });
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.create(dto).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error creating entity: {}", dto, e);
+                    throw new ServiceException("Failed to create entity", e);
+                }
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.create(dto).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error creating entity: {}", dto, e);
+                    throw new ServiceException("Failed to create entity", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "updateFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ApiSingleResponse<OUTDTO>> update(INDTO dto) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ApiSingleResponse<OUTDTO> response = baseFeignController.update(dto).getBody();
-                validateResponse(response);
-                return response;
-            } catch (Exception e) {
-                log.error("Error updating entity: {}", dto, e);
-                throw new ServiceException("Failed to update entity", e);
-            }
-        });
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.update(dto).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error updating entity: {}", dto, e);
+                    throw new ServiceException("Failed to update entity", e);
+                }
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ApiSingleResponse<OUTDTO> response = baseFeignController.update(dto).getBody();
+                    validateResponse(response);
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error updating entity: {}", dto, e);
+                    throw new ServiceException("Failed to update entity", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "removeFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ResponseEntity<?>> remove(UUID id) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ResponseEntity<?> response = baseFeignController.remove(id);
-                if (response.getStatusCode().isError()) {
-                    throw new ServiceException("Failed to remove entity with id: " + id);
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ResponseEntity<?> response = baseFeignController.remove(id);
+                    if (response.getStatusCode().isError()) {
+                        throw new ServiceException("Failed to remove entity with id: " + id);
+                    }
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error removing entity with id: {}", id, e);
+                    throw new ServiceException("Failed to remove entity", e);
                 }
-                return response;
-            } catch (Exception e) {
-                log.error("Error removing entity with id: {}", id, e);
-                throw new ServiceException("Failed to remove entity", e);
-            }
-        });
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ResponseEntity<?> response = baseFeignController.remove(id);
+                    if (response.getStatusCode().isError()) {
+                        throw new ServiceException("Failed to remove entity with id: " + id);
+                    }
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error removing entity with id: {}", id, e);
+                    throw new ServiceException("Failed to remove entity", e);
+                }
+            });
+        }
     }
 
     @CircuitBreaker(name = "genericService", fallbackMethod = "deleteFallback")
     @Retry(name = "genericService")
     @TimeLimiter(name = "genericService")
     public CompletableFuture<ResponseEntity<?>> delete(UUID id) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ResponseEntity<?> response = baseFeignController.delete(id);
-                if (response.getStatusCode().isError()) {
-                    throw new ServiceException("Failed to delete entity with id: " + id);
+        if (feignExecutor != null) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ResponseEntity<?> response = baseFeignController.delete(id);
+                    if (response.getStatusCode().isError()) {
+                        throw new ServiceException("Failed to delete entity with id: " + id);
+                    }
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error deleting entity with id: {}", id, e);
+                    throw new ServiceException("Failed to delete entity", e);
                 }
-                return response;
-            } catch (Exception e) {
-                log.error("Error deleting entity with id: {}", id, e);
-                throw new ServiceException("Failed to delete entity", e);
-            }
-        });
+            }, feignExecutor);
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    ResponseEntity<?> response = baseFeignController.delete(id);
+                    if (response.getStatusCode().isError()) {
+                        throw new ServiceException("Failed to delete entity with id: " + id);
+                    }
+                    return response;
+                } catch (Exception e) {
+                    log.error("Error deleting entity with id: {}", id, e);
+                    throw new ServiceException("Failed to delete entity", e);
+                }
+            });
+        }
     }
 
 

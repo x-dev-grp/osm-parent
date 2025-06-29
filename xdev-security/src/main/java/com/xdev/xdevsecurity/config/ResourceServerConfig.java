@@ -21,6 +21,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class ResourceServerConfig {
+    private static final Logger log = LoggerFactory.getLogger(ResourceServerConfig.class);
+    
     String[] WHITELIST = {
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -29,15 +31,19 @@ public class ResourceServerConfig {
             "/swagger-resources",
             "/webjars/**",
             "/configuration/**",
-            "/actuator/**"
+            "/actuator/**",
+            "/health/**",
+            "/info/**"
     };
-    private static final Logger log = LoggerFactory.getLogger(ResourceServerConfig.class);
 
     @Value("${spring.security.oauth2.resource-server.jwt.jwk-set-uri}")
     private String jwkSetUri;
 
     @Bean
+    @Primary
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.info("Configuring security filter chain with JWT issuer: {}", jwkSetUri);
+        
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> {
@@ -50,10 +56,10 @@ public class ResourceServerConfig {
     }
 
     @Bean
+    @Primary
     public JwtDecoder jwtDecoder() {
-       return NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+        log.info("Creating JWT decoder with JWK set URI: {}", jwkSetUri);
+        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
                 .build();
-
-
     }
 }
