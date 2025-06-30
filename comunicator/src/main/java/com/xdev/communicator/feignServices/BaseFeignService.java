@@ -20,13 +20,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 public class BaseFeignService <INDTO  extends BaseDto,OUTDTO extends BaseDto>{
-    private static final Logger log = LoggerFactory.getLogger(BaseFeignService.class);
+    public static final Logger log = LoggerFactory.getLogger(BaseFeignService.class);
 
     protected final BaseFeignController< INDTO, OUTDTO> baseFeignController;
-    
+
     @Autowired(required = false)
     @Qualifier("feignExecutor")
-    private Executor feignExecutor;
+    public Executor feignExecutor;
 
     public BaseFeignService(BaseFeignController<INDTO, OUTDTO> baseFeignController) {
         this.baseFeignController = baseFeignController;
