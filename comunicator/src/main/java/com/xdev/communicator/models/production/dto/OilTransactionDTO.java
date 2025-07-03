@@ -2,6 +2,7 @@ package com.xdev.communicator.models.production.dto;
 
 
 import com.xdev.communicator.models.common.dtos.BaseDto;
+import com.xdev.communicator.models.common.dtos.BaseTypeDto;
 import com.xdev.communicator.models.production.enums.TransactionState;
 import com.xdev.communicator.models.production.enums.TransactionType;
 
@@ -17,9 +18,19 @@ public class OilTransactionDTO  extends BaseDto {
     private Double quantityKg;
     private Double unitPrice;
     private Double totalPrice;
+
+    public BaseTypeDto getOilType() {
+        return oilType;
+    }
+
+    public void setOilType(BaseTypeDto oilType) {
+        this.oilType = oilType;
+    }
+
     private TransactionType transactionType;
     private TransactionState transactionState;
     private UnifiedDeliveryDTO reception;
+    private BaseTypeDto oilType;
 
     public UnifiedDeliveryDTO getReception() {
         return reception;
