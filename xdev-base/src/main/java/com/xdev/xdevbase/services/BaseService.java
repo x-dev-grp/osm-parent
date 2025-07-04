@@ -3,6 +3,7 @@ package com.xdev.xdevbase.services;
 import com.xdev.xdevbase.apiDTOs.SearchResponse;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
+import com.xdev.xdevbase.models.Action;
 import com.xdev.xdevbase.models.ExportDetails;
 import com.xdev.xdevbase.models.SearchData;
 import org.springframework.data.domain.Page;
@@ -40,9 +41,9 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
      byte[] exportToPdf(ExportDetails exportDetails);
     byte[] exportToCsv(ExportDetails exportDetails);
     byte[] exportToExcel(ExportDetails exportDetails);
-    default Set<String> actionsMapping(E entity){
-        Set<String> actions = new HashSet<>();
-        actions.addAll(Set.of("UPDATE", "DELETE","READ"));
+    default Set<Action> actionsMapping(E entity){
+        Set<Action> actions = new HashSet<>();
+        actions.add(Action.READ);
         return actions;
      }
 }

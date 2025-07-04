@@ -8,6 +8,7 @@ import com.xdev.xdevbase.controllers.BaseController;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.dtos.RevisionDto;
 import com.xdev.xdevbase.entities.BaseEntity;
+import com.xdev.xdevbase.models.Action;
 import com.xdev.xdevbase.models.ExportDetails;
 import com.xdev.xdevbase.models.OSMModule;
 import com.xdev.xdevbase.models.SearchData;
@@ -159,17 +160,16 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
           Set<String> actions=extractResourcePermissions(authentication,resource);
           String role=extractResourceRole(authentication);
           SearchResponse<E,OUTDTO> response = baseService.search(searchData);
-          List<OUTDTO> dtos = response.getData().stream().map(
+          List<OUTDTO> dtos = response.getData().stream().peek(
                   element -> {
                       E entity=modelMapper.map(element,baseService.getEntityClass());
-                      Set<String> filteredActions=baseService.actionsMapping(entity);
+                      Set<Action> filteredActions=baseService.actionsMapping(entity);
                       if(!(role.equalsIgnoreCase("ADMIN"))){
                           filteredActions=filteredActions.stream().filter(
-                                  a->actions.contains(a)
+                                  actions::contains
                           ).collect(Collectors.toSet());
                       }
                       element.setActions(filteredActions);
-                      return element;
                   }
           ).toList();
           response.setData(dtos);

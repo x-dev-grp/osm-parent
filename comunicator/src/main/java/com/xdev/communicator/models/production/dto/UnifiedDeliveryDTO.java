@@ -6,6 +6,7 @@ import com.xdev.communicator.models.common.dtos.BaseTypeDto;
 import com.xdev.communicator.models.common.dtos.SupplierDto;
 import com.xdev.communicator.models.production.enums.DeliveryType;
 import com.xdev.communicator.models.production.enums.OliveLotStatus;
+import com.xdev.communicator.models.production.enums.OperationType;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -20,8 +21,9 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     private String deliveryNumber;
 
      private DeliveryType deliveryType;
-
+    private OperationType operationType;
     private String lotNumber;
+    private String lotOliveNumber;
 
      private LocalDateTime deliveryDate;
 
@@ -78,14 +80,27 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     private Set<QualityControlResultDto> qualityControlResults = new HashSet<>();
 
     private StorageUnitDto storageUnit;
-    private BaseTypeDto operationType;
+//    private BaseTypeDto operationType;
     private MillMachineDto millMachine;
 
+    public void setOperationType(OperationType operationType) {
+        this.operationType = operationType;
+    }
+
+    public OperationType getOperationType() {
+        return operationType;
+    }
 
     public String getDeliveryNumber() {
         return deliveryNumber;
     }
+    public String getLotOliveNumber() {
+        return lotOliveNumber;
+    }
 
+    public void setLotOliveNumber(String lotOliveNumber) {
+        this.lotOliveNumber = lotOliveNumber;
+    }
 
     public void setDeliveryNumber(String deliveryNumber) {
         this.deliveryNumber = deliveryNumber;
@@ -130,14 +145,6 @@ public class UnifiedDeliveryDTO  extends BaseDto {
 
     public void setStorageUnit(StorageUnitDto storageUnit) {
         this.storageUnit = storageUnit;
-    }
-
-    public BaseTypeDto getOperationType() {
-        return operationType;
-    }
-
-    public void setOperationType(BaseTypeDto operationType) {
-        this.operationType = operationType;
     }
 
     public MillMachineDto getMillMachine() {

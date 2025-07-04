@@ -1,6 +1,7 @@
 package com.xdev.xdevbase.dtos;
 
 import com.xdev.xdevbase.entities.BaseEntity;
+import com.xdev.xdevbase.models.Action;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -9,7 +10,7 @@ import java.util.UUID;
 
 public class BaseDto<E extends BaseEntity> implements Serializable {
     private UUID id;
-    private Set<String> actions = Collections.emptySet();
+    private Set<Action> actions = Collections.emptySet();
     private Boolean isDeleted = false;
     private UUID externalId;
 
@@ -22,11 +23,11 @@ public class BaseDto<E extends BaseEntity> implements Serializable {
     }
 
 
-    public Set<String> getActions() {
+    public Set<Action> getActions() {
         return actions;
     }
 
-    public void setActions(Set<String> actions) {
+    public void setActions(Set<Action> actions) {
         this.actions = actions;
     }
 
