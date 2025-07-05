@@ -9,5 +9,5 @@ import org.springframework.data.repository.history.RevisionRepository;
 import java.util.UUID;
 
 @NoRepositoryBean
-public interface BaseRepository <E extends BaseEntity> extends JpaRepository<E, UUID>, RevisionRepository<E,UUID,Integer>, JpaSpecificationExecutor<E> {
+public interface BaseRepository<E extends BaseEntity> extends JpaRepository<E, UUID>, RevisionRepository<E, UUID, Integer>, JpaSpecificationExecutor<E> {
 }

@@ -10,8 +10,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -27,7 +25,7 @@ public class BaseEntity implements Serializable {
     private UUID id;
 
     @Column(name = "DELETED", updatable = false)
-    private Boolean isDeleted=false;
+    private Boolean isDeleted = false;
 
     @CreatedBy
     @Column(name = "CREATED_BY", updatable = false)
@@ -45,7 +43,7 @@ public class BaseEntity implements Serializable {
 
     @NaturalId
     @Column(nullable = false, unique = true, updatable = false)
-    private UUID externalId ;
+    private UUID externalId;
 
     public UUID getExternalId() {
         return externalId;
@@ -59,9 +57,16 @@ public class BaseEntity implements Serializable {
         return createdBy;
     }
 
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
 
     public String getLastModifiedBy() {
         return lastModifiedBy;
+    }
+
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
     }
 
     public UUID getId() {
@@ -78,15 +83,6 @@ public class BaseEntity implements Serializable {
 
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
     }
 
     public LocalDateTime getCreatedDate() {
@@ -109,7 +105,8 @@ public class BaseEntity implements Serializable {
     protected void onCreate() {
         if (externalId == null) {
             externalId = UUID.randomUUID();
-        } setCreatedDate(LocalDateTime.now());
+        }
+        setCreatedDate(LocalDateTime.now());
         setLastModifiedDate(LocalDateTime.now());
     }
 

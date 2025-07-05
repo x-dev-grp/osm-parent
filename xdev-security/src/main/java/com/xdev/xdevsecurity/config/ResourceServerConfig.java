@@ -22,7 +22,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity(prePostEnabled = true)
 public class ResourceServerConfig {
     private static final Logger log = LoggerFactory.getLogger(ResourceServerConfig.class);
-    
+
     String[] WHITELIST = {
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -43,7 +43,7 @@ public class ResourceServerConfig {
     @Primary
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info("Configuring security filter chain with JWT issuer: {}", jwkSetUri);
-        
+
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> {

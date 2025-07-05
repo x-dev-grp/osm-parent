@@ -5,6 +5,7 @@ import feign.Request;
 import feign.RequestInterceptor;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 
@@ -57,7 +56,7 @@ public class FeignConfiguration {
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
             log.debug("Feign interceptor called for URL: {}", requestTemplate.url());
-            
+
             // First try to get the token from the current request
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
@@ -84,11 +83,11 @@ public class FeignConfiguration {
             SecurityContext securityContext = SecurityContextHolder.getContext();
             Authentication authentication = securityContext.getAuthentication();
             if (authentication != null) {
-                log.debug("Authentication found: principal={}, credentials={}, authenticated={}", 
-                    authentication.getPrincipal(), 
-                    authentication.getCredentials(), 
-                    authentication.isAuthenticated());
-                
+                log.debug("Authentication found: principal={}, credentials={}, authenticated={}",
+                        authentication.getPrincipal(),
+                        authentication.getCredentials(),
+                        authentication.isAuthenticated());
+
                 if (authentication.getCredentials() instanceof String jwt) {
                     log.debug("Propagating JWT from SecurityContext credentials: {}", jwt.substring(0, Math.min(10, jwt.length())) + "...");
                     requestTemplate.header("Authorization", "Bearer " + jwt);
@@ -105,14 +104,14 @@ public class FeignConfiguration {
                         return;
                     }
                 }
-                
+
                 // Try to extract from authorities or other authentication properties
                 log.debug("Authentication authorities: {}", authentication.getAuthorities());
                 log.debug("Authentication details: {}", authentication.getDetails());
             } else {
                 log.debug("No Authentication found in SecurityContext");
             }
-            
+
             log.warn("No JWT found in SecurityContext or current request, proceeding without Authorization header");
             log.warn("This may cause 401 Unauthorized errors in downstream services");
         };

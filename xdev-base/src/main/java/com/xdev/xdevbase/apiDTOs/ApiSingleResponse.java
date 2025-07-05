@@ -3,9 +3,7 @@ package com.xdev.xdevbase.apiDTOs;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
 
-import java.util.List;
-
-public class ApiSingleResponse<E extends  BaseEntity ,OUTDTO extends BaseDto<E>> {
+public class ApiSingleResponse<E extends BaseEntity, OUTDTO extends BaseDto<E>> {
 
     private boolean success;
     private String message;
@@ -39,7 +37,7 @@ public class ApiSingleResponse<E extends  BaseEntity ,OUTDTO extends BaseDto<E>>
         this.message = message;
     }
 
-    public OUTDTO  getData() {
+    public OUTDTO getData() {
         return data;
     }
 

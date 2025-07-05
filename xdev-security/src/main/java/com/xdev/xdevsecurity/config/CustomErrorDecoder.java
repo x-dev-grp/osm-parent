@@ -1,6 +1,6 @@
 package com.xdev.xdevsecurity.config;
 
- import feign.Response;
+import feign.Response;
 import feign.codec.ErrorDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

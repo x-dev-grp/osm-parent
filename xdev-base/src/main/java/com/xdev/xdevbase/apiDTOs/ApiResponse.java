@@ -5,7 +5,7 @@ import com.xdev.xdevbase.entities.BaseEntity;
 
 import java.util.List;
 
-public class ApiResponse<E extends  BaseEntity ,OUTDTO extends BaseDto<E>> {
+public class ApiResponse<E extends BaseEntity, OUTDTO extends BaseDto<E>> {
 
     private boolean success;
     private String message;
