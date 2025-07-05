@@ -82,6 +82,7 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     private StorageUnitDto storageUnit;
 //    private BaseTypeDto operationType;
     private MillMachineDto millMachine;
+     private boolean hasQualityControl = false;
 
     public void setOperationType(OperationType operationType) {
         this.operationType = operationType;
@@ -335,4 +336,16 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     public void setParcel(String parcel) {
         this.parcel = parcel;
     }
+
+
+
+    public boolean isHasQualityControl() {
+        return hasQualityControl;
+    }
+
+    public void setHasQualityControl(boolean hasQualityControl) {
+        this.hasQualityControl = hasQualityControl;
+    }
+
+
 }
