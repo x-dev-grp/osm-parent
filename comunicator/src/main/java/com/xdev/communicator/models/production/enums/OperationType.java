@@ -4,6 +4,7 @@ public enum OperationType {
     BASE,
     OLIVE_PURCHASE,
     OIL_PURCHASE,
+    PAYMENT,
     EXCHANGE,
     SIMPLE_RECEPTION
 }
