@@ -16,6 +16,7 @@ public enum Action {
     OIL_OUT_TRANSACTION,
     OIL_IN_TRANSACTION,
     OIL_RECEPTION,
-    SET_PRICE
+    SET_PRICE,
+    GEN_PDF
 
 }
