@@ -14,8 +14,6 @@ import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
 import jakarta.persistence.EntityNotFoundException;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
@@ -32,11 +30,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.history.Revision;
 import org.springframework.data.history.Revisions;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.nio.charset.StandardCharsets;
@@ -115,43 +111,42 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         return data.map(item -> modelMapper.map(item, outDTOClass));
 
     }
-   @Override
+
+    @Override
     public OUTDTO save(INDTO request) {
         if (request == null) {
             this.LOGGER.debug("Request is empty or null");
             return null;
         } else {
             this.LOGGER.debug("save entity start");
-            E entity = (E) this.modelMapper.map(request, this.entityClass);
+            E entity = this.modelMapper.map(request, this.entityClass);
 
             resolveEntityRelations(entity); // ✅ Fix here
 
-            E savedEntity = (E) this.repository.save(entity);
+            E savedEntity = this.repository.save(entity);
             this.LOGGER.debug("save entity end");
-            return (OUTDTO) this.modelMapper.map(savedEntity, this.outDTOClass);
+            return this.modelMapper.map(savedEntity, this.outDTOClass);
         }
     }
-   @Override
+
+    @Override
     public List<OUTDTO> save(List<INDTO> request) {
         if (request != null && !request.isEmpty()) {
             this.LOGGER.debug("save entities start");
-            List<E> entities = request.stream()
-                    .map((item) -> (E) this.modelMapper.map(item, this.entityClass))
-                    .toList();
+            List<E> entities = request.stream().map((item) -> this.modelMapper.map(item, this.entityClass)).toList();
 
             entities.forEach(this::resolveEntityRelations); // ✅ Fix here
 
             entities = this.repository.saveAll(entities);
             this.LOGGER.debug("save entities end");
-            return entities.stream()
-                    .map((item) -> (OUTDTO) this.modelMapper.map(item, this.outDTOClass))
-                    .toList();
+            return entities.stream().map((item) -> this.modelMapper.map(item, this.outDTOClass)).toList();
         } else {
             this.LOGGER.debug("Request list is empty or null");
             return Collections.emptyList();
         }
     }
-  @Override
+
+    @Override
     public OUTDTO update(INDTO request) {
         if (request != null && request.getId() != null) {
             Optional<E> existedOptEntity = this.repository.findById(request.getId());
@@ -164,9 +159,9 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
                 resolveEntityRelations(existedEntity); // ✅ Fix here
 
-                E updatedEntity = (E) this.repository.save(existedEntity);
+                E updatedEntity = this.repository.save(existedEntity);
                 this.LOGGER.debug("Entity with ID {} updated successfully", request.getId());
-                return (OUTDTO) this.modelMapper.map(updatedEntity, this.outDTOClass);
+                return this.modelMapper.map(updatedEntity, this.outDTOClass);
             }
         } else {
             this.LOGGER.debug("Request or ID is null: {}", request);
@@ -174,13 +169,13 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         }
     }
 
-   @Override
-   public void resolveEntityRelations(E entity) {
+    @Override
+    public void resolveEntityRelations(E entity) {
     }
 
 
     @Override
-   public void remove(UUID id) {
+    public void remove(UUID id) {
         if (id != null) {
             LOGGER.debug("deleting entity start");
             repository.deleteById(id);
@@ -194,7 +189,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     @Override
     public OUTDTO delete(UUID id) {
         if (id == null) {
-            LOGGER.debug(" ID is null: {}",id);
+            LOGGER.debug(" ID is null: {}", id);
             return null;
         }
         E entity = repository.findById(id).orElse(null);
@@ -239,13 +234,13 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     }
 
     @Override
-    public SearchResponse<E,OUTDTO> search(SearchData searchData) {
+    public SearchResponse<E, OUTDTO> search(SearchData searchData) {
         try {
             int page = searchData.getPage() != null ? searchData.getPage() : 0;
             int size = searchData.getSize() != null ? searchData.getSize() : 10;
-            Sort.Direction direction =(searchData.getOrder()!=null && searchData.getOrder().equalsIgnoreCase("DESC")) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            String sort = searchData.getSort()!=null ? searchData.getSort() : "createdDate";
-            Pageable pageable=PageRequest.of(page, size, direction, sort);
+            Sort.Direction direction = (searchData.getOrder() != null && searchData.getOrder().equalsIgnoreCase("DESC")) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            String sort = searchData.getSort() != null ? searchData.getSort() : "createdDate";
+            Pageable pageable = PageRequest.of(page, size, direction, sort);
 
             Specification<E> spec = null;
             if (searchData.getSearchData() != null) {
@@ -258,55 +253,41 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             } else {
                 result = repository.findAll(pageable);
             }
-            List<OUTDTO> dtos = result.getContent().stream().map(
-                    element -> modelMapper.map(element, outDTOClass)
-            ).toList();
-            return new SearchResponse<>(
-                    result.getTotalElements(),
-                    dtos,
-                    result.getTotalPages(),
-                    result.getNumber() + 1
-            );
-        }catch (Exception e) {
-            return new SearchResponse<>(
-                    0,
-                    null,
-                    0,
-                    0
-            );
+            List<OUTDTO> dtos = result.getContent().stream().map(element -> modelMapper.map(element, outDTOClass)).toList();
+            return new SearchResponse<>(result.getTotalElements(), dtos, result.getTotalPages(), result.getNumber() + 1);
+        } catch (Exception e) {
+            return new SearchResponse<>(0, null, 0, 0);
         }
     }
-
-
-
 
 
     public byte[] exportToPdf(ExportDetails exportDetails) {
         // Get total count first to determine if pagination is needed
         SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-        SearchResponse<E,OUTDTO> countResponse = search(countData);
+        SearchResponse<E, OUTDTO> countResponse = search(countData);
         long totalRecords = countResponse.getTotal();
 
 
         // If total records exceed maximum per document, create multiple PDFs
         if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-            return createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(),exportDetails.getFileName());
+            return createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
         } else {
-            return createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(),exportDetails.getFileName());
+            return createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
         }
     }
 
     /**
      * Create a single PDF document
-     * @param searchData search criteria
+     *
+     * @param searchData     search criteria
      * @param fieldsToExport fields to include in export
      * @return PDF content as byte array
      */
-    private byte[] createSinglePdf(SearchData searchData, List<FieldDetails> fieldsToExport,String fileName) {
+    private byte[] createSinglePdf(SearchData searchData, List<FieldDetails> fieldsToExport, String fileName) {
         // Retrieve all data for export
         searchData.setPage(0);
         searchData.setSize(MAX_RECORDS_PER_DOCUMENT);
-        SearchResponse<E,OUTDTO> response = search(searchData);
+        SearchResponse<E, OUTDTO> response = search(searchData);
         List<OUTDTO> data = response.getData();
 
         return generatePdf(data, 1, 1, fieldsToExport, fileName);
@@ -314,12 +295,13 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Create multiple PDF documents in a ZIP archive
-     * @param searchData search criteria
-     * @param totalRecords total number of records
+     *
+     * @param searchData     search criteria
+     * @param totalRecords   total number of records
      * @param fieldsToExport fields to include in export
      * @return ZIP archive as byte array
      */
-    private byte[] createMultiplePdfs(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport,String fileName) {
+    private byte[] createMultiplePdfs(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport, String fileName) {
         ByteArrayOutputStream zipOutput = new ByteArrayOutputStream();
 
         try (ZipOutputStream zipStream = new ZipOutputStream(zipOutput)) {
@@ -335,7 +317,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
                 List<OUTDTO> data = response.getData();
 
                 // Generate PDF for current page
-                byte[] pdfData = generatePdf(data, pageNum + 1, totalPages, fieldsToExport,fileName);
+                byte[] pdfData = generatePdf(data, pageNum + 1, totalPages, fieldsToExport, fileName);
 
                 // Add PDF to ZIP archive
                 ZipEntry entry = new ZipEntry(fileName + "_part_" + (pageNum + 1) + "_of_" + totalPages + ".pdf");
@@ -355,14 +337,14 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Generate a PDF document for the given data
-     * @param data list of entities
-     * @param partNumber current part number
-     * @param totalParts total number of parts
+     *
+     * @param data           list of entities
+     * @param partNumber     current part number
+     * @param totalParts     total number of parts
      * @param fieldsToExport fields to include in export
      * @return PDF content as byte array
      */
-    private byte[]
-    generatePdf(List<OUTDTO> data, int partNumber, int totalParts, List<FieldDetails> fieldsToExport,String fileName) {
+    private byte[] generatePdf(List<OUTDTO> data, int partNumber, int totalParts, List<FieldDetails> fieldsToExport, String fileName) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4.rotate(), 10, 10, 10, 10);
 
@@ -372,7 +354,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
             // Add title
             Font titleFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
-            Paragraph title = new Paragraph(fileName , titleFont);
+            Paragraph title = new Paragraph(fileName, titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
 
@@ -403,7 +385,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             Font dataFont = new Font(Font.FontFamily.HELVETICA, 8);
             for (OUTDTO entity : data) {
                 for (FieldDetails field : fieldsToExport) {
-                    String value = getFieldValue(entity, field.getName());
+                    String value = getFieldValue(entity, field);
                     PdfPCell cell = new PdfPCell(new Phrase(value, dataFont));
                     table.addCell(cell);
                 }
@@ -421,13 +403,14 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Export data to CSV format
+     *
      * @param exportDetails search criteria
      * @return CSV content as byte array (zipped if multiple files)
      */
     public byte[] exportToCsv(ExportDetails exportDetails) {
         // Get total count first to determine if pagination is needed
         SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-        SearchResponse<E,OUTDTO> countResponse = search(countData);
+        SearchResponse<E, OUTDTO> countResponse = search(countData);
         long totalRecords = countResponse.getTotal();
 
         // If total records exceed maximum per document, create multiple CSVs
@@ -440,7 +423,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Create a single CSV document
-     * @param searchData search criteria
+     *
+     * @param searchData     search criteria
      * @param fieldsToExport fields to include in export
      * @return CSV content as byte array
      */
@@ -448,7 +432,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         // Retrieve all data for export
         searchData.setPage(0);
         searchData.setSize(MAX_RECORDS_PER_DOCUMENT);
-        SearchResponse<E,OUTDTO> response = search(searchData);
+        SearchResponse<E, OUTDTO> response = search(searchData);
         List<OUTDTO> data = response.getData();
 
         return generateCsv(data, fieldsToExport);
@@ -456,8 +440,9 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Create multiple CSV documents in a ZIP archive
-     * @param searchData search criteria
-     * @param totalRecords total number of records
+     *
+     * @param searchData     search criteria
+     * @param totalRecords   total number of records
      * @param fieldsToExport fields to include in export
      * @return ZIP archive as byte array
      */
@@ -473,7 +458,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
                 searchData.setSize(MAX_RECORDS_PER_DOCUMENT);
 
                 // Get data for current page
-                SearchResponse<E,OUTDTO> response = search(searchData);
+                SearchResponse<E, OUTDTO> response = search(searchData);
                 List<OUTDTO> data = response.getData();
 
                 // Generate CSV for current page
@@ -494,9 +479,11 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
         return zipOutput.toByteArray();
     }
+
     /**
      * Generate a CSV document for the given data
-     * @param data list of entities
+     *
+     * @param data           list of entities
      * @param fieldsToExport fields to include in export
      * @return CSV content as byte array
      */
@@ -505,7 +492,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
         try {
             // First, add UTF-8 BOM to help Excel detect encoding correctly
-            byte[] bom = new byte[] { (byte)0xEF, (byte)0xBB, (byte)0xBF };
+            byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
             outputStream.write(bom);
 
             // Create Excel-friendly CSV with semicolon delimiter since some locales use comma as decimal separator
@@ -524,7 +511,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             // Add data rows
             for (OUTDTO entity : data) {
                 for (int i = 0; i < fieldsToExport.size(); i++) {
-                    String value = getFieldValue(entity, fieldsToExport.get(i).getName());
+                    String value = getFieldValue(entity, fieldsToExport.get(i));
                     // Properly escape quotes and wrap values in quotes
                     value = value.replace("\"", "\"\"");
                     csv.append("\"").append(value).append("\"");
@@ -544,18 +531,19 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             throw new RuntimeException("Failed to create CSV", e);
         }
     }
+
     /**
      * Get all fields available in the entity
+     *
      * @return list of all field names
      */
     protected List<String> getAllEntityFields() {
-        return Arrays.stream(entityClass.getDeclaredFields())
-                .map(Field::getName)
-                .collect(Collectors.toList());
+        return Arrays.stream(entityClass.getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
     }
 
     /**
      * Get default fields to export (can be overridden by subclasses)
+     *
      * @return list of default fields
      */
     protected List<String> getDefaultExportFields() {
@@ -564,6 +552,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Clone search data for count query
+     *
      * @param original original search data
      * @return cloned search data with page=0 and size=1
      */
@@ -580,17 +569,18 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     /**
      * Get value of a field from an entity
-     * @param entity entity object
-     * @param fieldName field name
+     *
+     * @param entity       entity object
+     * @param fieldDetails field
      * @return field value as string
      */
-    protected String getFieldValue(OUTDTO entity, String fieldName) {
-        if (entity == null || fieldName == null || fieldName.isEmpty()) {
+    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
+        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
             return "";
         }
 
         // Handle nested properties by splitting the field name by dots
-        String[] fieldPath = fieldName.split("\\.");
+        String[] fieldPath = fieldDetails.getName().split("\\.");
 
         try {
             Object currentObject = entity;
@@ -609,18 +599,25 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
                 }
 
                 field.setAccessible(true);
-                currentObject =  field.get(currentObject);
+                currentObject = field.get(currentObject);
 
                 // Update the class for the next iteration if we have more fields to traverse
                 if (currentObject != null) {
                     currentClass = currentObject.getClass();
                 }
             }
-
-            return currentObject != null ? currentObject.toString() : "";
+            if (currentObject != null) {
+                if (fieldDetails.isEnumValue() &&
+                    fieldDetails.getEnumValues() != null &&
+                     !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString())!=null) {
+                     return fieldDetails.getEnumValues().get(currentObject.toString());
+                }
+                return currentObject.toString();
+            }
+            return "";
         } catch (IllegalAccessException e) {
             // Log the error if needed
-             LOGGER.error("Error accessing field " + fieldName, e);
+            LOGGER.error("Error accessing field " + fieldDetails.getName(), e);
             return "";
         }
     }
@@ -644,22 +641,10 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     public byte[] exportToExcel(ExportDetails exportDetails) {
         // Get total count to determine if pagination is needed
         SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-        SearchResponse<E,OUTDTO> countResponse = search(countData);
+        SearchResponse<E, OUTDTO> countResponse = search(countData);
         long totalRecords = countResponse.getTotal();
 
         LOGGER.debug("Total records for export: {}", totalRecords);
@@ -667,19 +652,10 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         // Only create multiple Excel files if total records exceed maximum per document
         if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
             LOGGER.debug("Creating multiple Excel files in ZIP archive");
-            return createMultipleExcelFiles(
-                    exportDetails.getSearchData(),
-                    totalRecords,
-                    exportDetails.getFieldDetails(),
-                    exportDetails.getFileName()
-            );
+            return createMultipleExcelFiles(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
         } else {
             LOGGER.debug("Creating single Excel file");
-            return createSingleExcelFile(
-                    exportDetails.getSearchData(),
-                    exportDetails.getFieldDetails(),
-                    exportDetails.getFileName()
-            );
+            return createSingleExcelFile(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
         }
     }
 
@@ -688,7 +664,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             // Retrieve all data for export
             searchData.setPage(0);
             searchData.setSize(MAX_RECORDS_PER_DOCUMENT);
-            SearchResponse<E,OUTDTO> response = search(searchData);
+            SearchResponse<E, OUTDTO> response = search(searchData);
             List<OUTDTO> data = response.getData();
 
             LOGGER.debug("Retrieved {} records for Excel export", data.size());
@@ -701,8 +677,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         }
     }
 
-    private byte[] createMultipleExcelFiles(SearchData searchData, long totalRecords,
-                                            List<FieldDetails> fieldsToExport, String fileName) {
+    private byte[] createMultipleExcelFiles(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport, String fileName) {
         ByteArrayOutputStream zipOutput = new ByteArrayOutputStream();
 
         try (ZipOutputStream zipStream = new ZipOutputStream(zipOutput)) {
@@ -715,7 +690,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
                 searchData.setSize(MAX_RECORDS_PER_DOCUMENT);
 
                 // Get data for current page
-                SearchResponse<E,OUTDTO> response = search(searchData);
+                SearchResponse<E, OUTDTO> response = search(searchData);
                 List<OUTDTO> data = response.getData();
                 LOGGER.debug("Processing page {} with {} records", pageNum + 1, data.size());
 
@@ -740,8 +715,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     }
 
     private byte[] generateExcelFile(List<OUTDTO> data, List<FieldDetails> fieldsToExport, String sheetName) {
-        try (XSSFWorkbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             // Validate input
             if (data == null) {
@@ -805,7 +779,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
                 for (int colNum = 0; colNum < fieldsToExport.size(); colNum++) {
                     XSSFCell cell = row.createCell(colNum);
-                    String value = getFieldValue(entity, fieldsToExport.get(colNum).getName());
+                    String value = getFieldValue(entity, fieldsToExport.get(colNum));
                     cell.setCellValue(value);
                     cell.setCellStyle(rowStyle);
                 }
@@ -831,4 +805,5 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             LOGGER.error("Error creating Excel document", e);
             throw new RuntimeException("Failed to create Excel export", e);
         }
-    }}
+    }
+}
