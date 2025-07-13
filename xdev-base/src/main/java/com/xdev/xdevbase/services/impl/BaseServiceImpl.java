@@ -605,7 +605,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             Font dataFont = new Font(Font.FontFamily.HELVETICA, 8);
             for (OUTDTO entity : data) {
                 for (FieldDetails field : fieldsToExport) {
-                    String value = getFieldValue(entity, field.getName());
+                    String value = getFieldValue(entity, field );
                     PdfPCell cell = new PdfPCell(new Phrase(value, dataFont));
                     table.addCell(cell);
                 }
@@ -797,7 +797,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             // Add data rows
             for (OUTDTO entity : data) {
                 for (int i = 0; i < fieldsToExport.size(); i++) {
-                    String value = getFieldValue(entity, fieldsToExport.get(i).getName());
+                    String value = getFieldValue(entity, fieldsToExport.get(i));
                     // Properly escape quotes and wrap values in quotes
                     value = value.replace("\"", "\"\"");
                     csv.append("\"").append(value).append("\"");
@@ -866,16 +866,16 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
      * Get value of a field from an entity
      *
      * @param entity    entity object
-     * @param fieldName field name
+     * @param fieldDetails fieldDetails
      * @return field value as string
      */
-    protected String getFieldValue(OUTDTO entity, String fieldName) {
-        if (entity == null || fieldName == null || fieldName.isEmpty()) {
+    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
+        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
             return "";
         }
 
         // Handle nested properties by splitting the field name by dots
-        String[] fieldPath = fieldName.split("\\.");
+        String[] fieldPath = fieldDetails.getName().split("\\.");
 
         try {
             Object currentObject = entity;
@@ -901,15 +901,21 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
                     currentClass = currentObject.getClass();
                 }
             }
-
-            return currentObject != null ? currentObject.toString() : "";
+            if (currentObject != null) {
+                if (fieldDetails.isEnumValue() &&
+                        fieldDetails.getEnumValues() != null &&
+                        !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString())!=null) {
+                    return fieldDetails.getEnumValues().get(currentObject.toString());
+                }
+                return currentObject.toString();
+            }
+            return "";
         } catch (IllegalAccessException e) {
             // Log the error if needed
-            LOGGER.error("Error accessing field " + fieldName, e);
+            LOGGER.error("Error accessing field " + fieldDetails.getName(), e);
             return "";
         }
     }
-
     /**
      * Helper method to get a field from a class or its superclasses
      */
@@ -1128,7 +1134,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
                 for (int colNum = 0; colNum < fieldsToExport.size(); colNum++) {
                     XSSFCell cell = row.createCell(colNum);
-                    String value = getFieldValue(entity, fieldsToExport.get(colNum).getName());
+                    String value = getFieldValue(entity, fieldsToExport.get(colNum) );
                     cell.setCellValue(value);
                     cell.setCellStyle(rowStyle);
                 }

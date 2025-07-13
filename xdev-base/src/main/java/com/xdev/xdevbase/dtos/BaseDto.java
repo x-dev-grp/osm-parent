@@ -4,6 +4,7 @@ import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.Action;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -13,6 +14,42 @@ public class BaseDto<E extends BaseEntity> implements Serializable {
     private Set<Action> actions = Collections.emptySet();
     private Boolean isDeleted = false;
     private UUID externalId;
+    private LocalDateTime createdDate;
+    private String createdBy;
+    private String lastModifiedBy;
+    private LocalDateTime lastModifiedDate;
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
+    }
+
+    public LocalDateTime getLastModifiedDate() {
+        return lastModifiedDate;
+    }
+
+    public void setLastModifiedDate(LocalDateTime lastModifiedDate) {
+        this.lastModifiedDate = lastModifiedDate;
+    }
 
     public Boolean getDeleted() {
         return isDeleted;
