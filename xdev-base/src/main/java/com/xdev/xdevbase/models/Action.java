@@ -17,6 +17,7 @@ public enum Action {
     OIL_IN_TRANSACTION,
     OIL_RECEPTION,
     SET_PRICE,
-    GEN_PDF
+    COMPLETE_PAYMENT_DETAILS,
+    VALIDATE, GEN_PDF
 
 }

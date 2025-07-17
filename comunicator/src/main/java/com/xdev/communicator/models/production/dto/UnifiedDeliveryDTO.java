@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+
 /**
  * DTO for UnifiedDelivery.
  */
@@ -20,7 +21,9 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     // --- Common Fields ---
     private String deliveryNumber;
 
-     private DeliveryType deliveryType;
+    private String categoryOliveOil;
+
+    private DeliveryType deliveryType;
     private OperationType operationType;
     private String lotNumber;
     private String lotOliveNumber;
@@ -88,13 +91,6 @@ public class UnifiedDeliveryDTO  extends BaseDto {
         this.operationType = operationType;
     }
 
-    public OperationType getOperationType() {
-        return operationType;
-    }
-
-    public String getDeliveryNumber() {
-        return deliveryNumber;
-    }
     public String getLotOliveNumber() {
         return lotOliveNumber;
     }
@@ -103,6 +99,9 @@ public class UnifiedDeliveryDTO  extends BaseDto {
         this.lotOliveNumber = lotOliveNumber;
     }
 
+    public String getDeliveryNumber() {
+        return deliveryNumber;
+    }
     public void setDeliveryNumber(String deliveryNumber) {
         this.deliveryNumber = deliveryNumber;
     }
@@ -128,7 +127,7 @@ public class UnifiedDeliveryDTO  extends BaseDto {
         return deliveryDate;
     }
 
-     public void setDeliveryDate(LocalDateTime deliveryDate) {
+    public void setDeliveryDate(LocalDateTime deliveryDate) {
         this.deliveryDate = deliveryDate;
     }
 
@@ -138,6 +137,14 @@ public class UnifiedDeliveryDTO  extends BaseDto {
 
     public void setQualityControlResults(Set<QualityControlResultDto> qualityControlResults) {
         this.qualityControlResults = qualityControlResults;
+    }
+
+    public String getCategoryOliveOil() {
+        return categoryOliveOil;
+    }
+
+    public void setCategoryOliveOil(String categoryOliveOil) {
+        this.categoryOliveOil = categoryOliveOil;
     }
 
     public StorageUnitDto getStorageUnit() {
@@ -336,16 +343,4 @@ public class UnifiedDeliveryDTO  extends BaseDto {
     public void setParcel(String parcel) {
         this.parcel = parcel;
     }
-
-
-
-    public boolean isHasQualityControl() {
-        return hasQualityControl;
-    }
-
-    public void setHasQualityControl(boolean hasQualityControl) {
-        this.hasQualityControl = hasQualityControl;
-    }
-
-
 }

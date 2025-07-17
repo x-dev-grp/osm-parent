@@ -6,5 +6,6 @@ public enum OperationType {
     OIL_PURCHASE,
     PAYMENT,
     EXCHANGE,
-    SIMPLE_RECEPTION
+    SIMPLE_RECEPTION,
+    INTERNAL_RECEPTION,
 }
