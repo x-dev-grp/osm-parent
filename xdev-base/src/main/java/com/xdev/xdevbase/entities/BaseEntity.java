@@ -1,5 +1,6 @@
 package com.xdev.xdevbase.entities;
 
+import com.xdev.xdevbase.config.TenantContext;
 import jakarta.persistence.*;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.envers.Audited;
@@ -23,7 +24,7 @@ public class BaseEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
+    private UUID tenantId;
     @Column(name = "DELETED", updatable = false)
     private Boolean isDeleted = false;
 
@@ -101,10 +102,21 @@ public class BaseEntity implements Serializable {
         this.lastModifiedDate = lastModifiedDate;
     }
 
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
+    }
+
     @PrePersist
     protected void onCreate() {
         if (externalId == null) {
             externalId = UUID.randomUUID();
+        }
+        if( getTenantId() == null ) {
+            setTenantId(TenantContext.getCurrentTenant());
         }
         setCreatedDate(LocalDateTime.now());
         setLastModifiedDate(LocalDateTime.now());

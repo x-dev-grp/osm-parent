@@ -253,7 +253,8 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
                     element -> {
                         E entity = modelMapper.map(element, baseService.getEntityClass());
                         Set<Action> filteredActions = baseService.actionsMapping(entity);
-                        if (!(role.equalsIgnoreCase("ADMIN"))) {
+                        Set<String> roles = Set.of("ADMIN","OSMADMIN");
+                        if (!(roles.contains(role))) {
                             filteredActions = filteredActions.stream().filter(
                                     actions::contains
                             ).collect(Collectors.toSet());

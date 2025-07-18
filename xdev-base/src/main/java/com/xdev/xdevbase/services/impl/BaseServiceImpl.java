@@ -5,11 +5,13 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.xdev.xdevbase.apiDTOs.SearchResponse;
+import com.xdev.xdevbase.config.TenantContext;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.ExportDetails;
 import com.xdev.xdevbase.models.FieldDetails;
 import com.xdev.xdevbase.models.SearchData;
+import com.xdev.xdevbase.models.SearchDetails;
 import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
@@ -87,7 +89,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "findById", id);
 
         try {
-            Optional<E> data = repository.findById(id);
+            UUID tenantId = TenantContext.getCurrentTenant();
+            Optional<E> data = repository.findByIdAndTenantIdAndIsDeletedFalse(id,tenantId);
             if (data.isEmpty()) {
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.WARN, "Entity not found with ID: {}", id);
                 throw new EntityNotFoundException("Entity not found with this id " + id);
@@ -110,7 +113,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "findAll");
 
         try {
-            Collection<E> data = repository.findAll();
+            UUID tenantId = TenantContext.getCurrentTenant();
+            Collection<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId);
             List<OUTDTO> result = data.stream().map(item -> modelMapper.map(item, outDTOClass)).toList();
             OSMLogger.logMethodExit(this.getClass(), "findAll", "Found " + result.size() + " entities");
             OSMLogger.logPerformance(this.getClass(), "findAll", startTime, System.currentTimeMillis());
@@ -128,10 +132,11 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "findAll", page, size, sort, direction);
 
         try {
+            UUID tenantId = TenantContext.getCurrentTenant();
             Sort.Direction sortDirection = Sort.Direction.fromString(direction);  // "ASC" or "DESC"
             Sort sortObject = Sort.by(sortDirection, sort);  // Sort by the field and direction
             Pageable pageable = PageRequest.of(page, size, sortObject);
-            Page<E> data = repository.findAll(pageable);
+            Page<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId,pageable);
 
             Page<OUTDTO> result = data.map(item -> modelMapper.map(item, outDTOClass));
             OSMLogger.logMethodExit(this.getClass(), "findAll", "Page " + page + " with " + result.getContent().size() + " entities");
@@ -382,7 +387,11 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             Sort.Direction direction = (searchData.getOrder() != null && searchData.getOrder().equalsIgnoreCase("DESC")) ? Sort.Direction.DESC : Sort.Direction.ASC;
             String sort = searchData.getSort() != null ? searchData.getSort() : "createdDate";
             Pageable pageable = PageRequest.of(page, size, direction, sort);
-
+             if(searchData.isFilterTenant()) {
+                 SearchDetails details = new SearchDetails();
+                 details.setEqualValue(TenantContext.getCurrentTenant());
+                 searchData.getSearchData().getSearch().put("tenantId",details);
+             }
             Specification<E> spec = null;
             if (searchData.getSearchData() != null) {
                 spec = specificationBuilder.buildSpecification(searchData.getSearchData());
