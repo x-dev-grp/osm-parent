@@ -20,8 +20,11 @@ public class TenantFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
-            UUID tenantId = UUID.fromString(request.getHeader("X-Tenant-ID"));
-            TenantContext.setCurrentTenant(tenantId);
+
+            if(request.getHeader("X-Tenant-ID") != null) {
+                UUID tenantId = UUID.fromString(request.getHeader("X-Tenant-ID"));
+                TenantContext.setCurrentTenant(tenantId);
+            }
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();

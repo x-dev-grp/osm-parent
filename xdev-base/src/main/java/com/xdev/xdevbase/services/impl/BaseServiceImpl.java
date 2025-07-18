@@ -390,7 +390,9 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
              if(searchData.isFilterTenant()) {
                  SearchDetails details = new SearchDetails();
                  details.setEqualValue(TenantContext.getCurrentTenant());
-                 searchData.getSearchData().getSearch().put("tenantId",details);
+                 if(searchData.getSearchData() != null) {
+                     searchData.getSearchData().getSearch().put("tenantId",details);
+                 }
              }
             Specification<E> spec = null;
             if (searchData.getSearchData() != null) {
