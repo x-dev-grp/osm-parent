@@ -6,6 +6,15 @@ public class SearchData {
     private String sort;
     private String order;
     private SearchModel searchData;
+    private boolean filterTenant =true;
+
+    public boolean isFilterTenant() {
+        return filterTenant;
+    }
+
+    public void setFilterTenant(boolean filterTenant) {
+        this.filterTenant = filterTenant;
+    }
 
     public Integer getPage() {
         return page;

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public class BaseDto<E extends BaseEntity> implements Serializable {
     private UUID id;
+    private UUID tenantId;
     private Set<Action> actions = Collections.emptySet();
     private Boolean isDeleted = false;
     private UUID externalId;
@@ -59,6 +60,13 @@ public class BaseDto<E extends BaseEntity> implements Serializable {
         isDeleted = deleted;
     }
 
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
+    }
 
     public Set<Action> getActions() {
         return actions;
