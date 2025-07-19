@@ -89,8 +89,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "findById", id);
 
         try {
-            UUID tenantId = TenantContext.getCurrentTenant();
-            Optional<E> data = repository.findByIdAndTenantIdAndIsDeletedFalse(id,tenantId);
+            Optional<E> data = repository.findByIdAndIsDeletedFalse(id);
             if (data.isEmpty()) {
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.WARN, "Entity not found with ID: {}", id);
                 throw new EntityNotFoundException("Entity not found with this id " + id);
@@ -114,7 +113,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
         try {
             UUID tenantId = TenantContext.getCurrentTenant();
-            Collection<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId);
+            List<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId);
             List<OUTDTO> result = data.stream().map(item -> modelMapper.map(item, outDTOClass)).toList();
             OSMLogger.logMethodExit(this.getClass(), "findAll", "Found " + result.size() + " entities");
             OSMLogger.logPerformance(this.getClass(), "findAll", startTime, System.currentTimeMillis());
