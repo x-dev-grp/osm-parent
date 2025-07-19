@@ -438,8 +438,16 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
 
         try {
+            if(exportDetails.getSearchData().isFilterTenant()) {
+                SearchDetails details = new SearchDetails();
+                details.setEqualValue(TenantContext.getCurrentTenant());
+                if(exportDetails.getSearchData().getSearchData() != null) {
+                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+                }
+            }
             // Get total count first to determine if pagination is needed
             SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+
             SearchResponse<E, OUTDTO> countResponse = search(countData);
             long totalRecords = countResponse.getTotal();
 
@@ -649,6 +657,13 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         OSMLogger.logMethodEntry(this.getClass(), "exportToCsv", exportDetails);
 
         try {
+            if(exportDetails.getSearchData().isFilterTenant()) {
+                SearchDetails details = new SearchDetails();
+                details.setEqualValue(TenantContext.getCurrentTenant());
+                if(exportDetails.getSearchData().getSearchData() != null) {
+                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+                }
+            }
             // Get total count first to determine if pagination is needed
             SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
             SearchResponse<E, OUTDTO> countResponse = search(countData);

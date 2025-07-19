@@ -21,4 +21,7 @@ public interface BaseRepository<E extends BaseEntity> extends JpaRepository<E, U
   List<E> findAllByTenantIdAndIsDeletedFalse(UUID tenantId);
   Page<E> findAllByTenantIdAndIsDeletedFalse(UUID tenantId, Pageable pageable);
 
+  Optional<E> findByIdAndIsDeletedFalse(UUID id);
+  List<E> findAllAndIsDeletedFalse();
+  Page<E> findAllAndIsDeletedFalse(Pageable pageable);
 }
