@@ -13,6 +13,15 @@ public class ExpenseDto  extends BaseDto {
     private String object;
     private LocalDate date;
     private Double amount;
+    private String vendor;
+    private String category;
+    private String paymentMethod;
+    private String status;
+    private String notes;
+    private String receiptNumber;
+    private String createdBy;
+    private Boolean approved;
+    private LocalDate approvalDate;
 
     public String getInvoiceRef() {
         return invoiceRef;
@@ -53,4 +62,31 @@ public class ExpenseDto  extends BaseDto {
     public void setAmount(Double amount) {
         this.amount = amount;
     }
+
+    public String getVendor() { return vendor; }
+    public void setVendor(String vendor) { this.vendor = vendor; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
+
+    public String getReceiptNumber() { return receiptNumber; }
+    public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public Boolean getApproved() { return approved; }
+    public void setApproved(Boolean approved) { this.approved = approved; }
+
+    public LocalDate getApprovalDate() { return approvalDate; }
+    public void setApprovalDate(LocalDate approvalDate) { this.approvalDate = approvalDate; }
 }
