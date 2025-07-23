@@ -25,25 +25,19 @@ public class BaseEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     private UUID tenantId;
-    @Column(name = "DELETED", updatable = false)
     private Boolean isDeleted = false;
 
     @CreatedBy
-    @Column(name = "CREATED_BY", updatable = false)
     private String createdBy;
 
-    @Column(name = "CREATE_DATE_TIME", updatable = false)
     private LocalDateTime createdDate;
 
     @LastModifiedBy
-    @Column(name = "MODIFIED_BY")
     private String lastModifiedBy;
 
-    @Column(name = "MODIFIED_DATE_TIME")
     private LocalDateTime lastModifiedDate;
 
     @NaturalId
-    @Column(nullable = false, unique = true, updatable = false)
     private UUID externalId;
 
     public UUID getExternalId() {
@@ -124,6 +118,12 @@ public class BaseEntity implements Serializable {
 
     @PreUpdate
     protected void onUpdate() {
+        if (externalId == null) {
+            externalId = UUID.randomUUID();
+        }
+        if( getTenantId() == null ) {
+            setTenantId(TenantContext.getCurrentTenant());
+        }
         setLastModifiedDate(LocalDateTime.now());
     }
 
