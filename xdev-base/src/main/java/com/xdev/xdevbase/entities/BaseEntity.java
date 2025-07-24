@@ -1,7 +1,7 @@
 package com.xdev.xdevbase.entities;
 
-import com.xdev.xdevbase.config.TenantContext;
-import jakarta.persistence.*;
+ import com.xdev.xdevbase.config.TenantContext;
+ import jakarta.persistence.*;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.envers.Audited;
 import org.springframework.data.annotation.CreatedBy;
