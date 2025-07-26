@@ -402,7 +402,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             if (spec != null) {
                 result = repository.findAll(spec, pageable);
             } else {
-                result = repository.findAll(pageable);
+                if(searchData.isFilterTenant()){
+                    result = repository.findAllByTenantIdAndIsDeletedFalse(TenantContext.getCurrentTenant(),pageable);
+                }else
+                     result = repository.findAllByIsDeletedFalse(pageable);
             }
             List<OUTDTO> dtos = result.getContent().stream().map(
                     element -> modelMapper.map(element, outDTOClass)
