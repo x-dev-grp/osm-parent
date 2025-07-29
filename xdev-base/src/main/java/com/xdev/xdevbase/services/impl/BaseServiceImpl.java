@@ -39,8 +39,10 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -49,7 +51,11 @@ import java.util.zip.ZipOutputStream;
 
 @SuppressWarnings("unchecked")
 public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDto<E>, OUTDTO extends BaseDto<E>> implements BaseService<E, INDTO, OUTDTO> {
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int MAX_RECORDS_PER_DOCUMENT = 1000;
+    public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    public static final DateTimeFormatter OFFSET_DATE_TIME_FORMATTER1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX");
+    public static final DateTimeFormatter ZONED_DATE_TIME_FORMATTER1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
     protected final BaseRepository<E> repository;
     protected final ModelMapper modelMapper;
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
@@ -935,7 +941,14 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                         !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString())!=null) {
                     return fieldDetails.getEnumValues().get(currentObject.toString());
                 }
-                return currentObject.toString();
+                return switch (currentObject) {
+                    case LocalDate localDate -> localDate.format(DATE_TIME_FORMATTER);
+                    case LocalDateTime localDateTime -> localDateTime.format(TIME_FORMATTER);
+                    case OffsetDateTime offsetDateTime -> offsetDateTime.format(OFFSET_DATE_TIME_FORMATTER1);
+                    case ZonedDateTime zonedDateTime -> zonedDateTime.format(ZONED_DATE_TIME_FORMATTER1);
+                    case Instant instant -> TIME_FORMATTER.withZone(ZoneId.systemDefault()).format(instant);
+                    default -> currentObject.toString();
+                };
             }
             return "";
         } catch (IllegalAccessException e) {
