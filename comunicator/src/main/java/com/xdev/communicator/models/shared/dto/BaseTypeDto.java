@@ -1,11 +1,13 @@
-package com.xdev.communicator.models.common.dtos;
+package com.xdev.communicator.models.shared.dto;
 
-
+import com.xdev.communicator.models.common.dtos.BaseDto;
 import com.xdev.communicator.models.shared.enums.TypeCategory;
 
-public class BaseTypeDto  extends  BaseDto{
+
+public class BaseTypeDto extends BaseDto {
     private String name; // The name of the type (e.g., "Plastic Waste", "Local SupplierInfo")
     private String description; // Description of the type
+
     private TypeCategory type;
 
     public BaseTypeDto() {
