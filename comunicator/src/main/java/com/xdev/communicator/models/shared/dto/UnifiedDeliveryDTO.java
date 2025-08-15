@@ -3,6 +3,7 @@ package com.xdev.communicator.models.shared.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 
+import com.xdev.communicator.models.common.dtos.BaseDto;
 import com.xdev.communicator.models.shared.enums.DeliveryType;
 import com.xdev.communicator.models.shared.enums.OliveLotStatus;
 import com.xdev.communicator.models.shared.enums.OperationType;
@@ -16,7 +17,7 @@ import java.util.Set;
 /**
  * DTO for UnifiedDelivery.
  */
-public class UnifiedDeliveryDTO  {
+public class UnifiedDeliveryDTO extends BaseDto {
 
     // --- Common Fields ---
     private String deliveryNumber;
