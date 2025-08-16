@@ -1,6 +1,7 @@
 package com.xdev.xdevbase.entities;
 
  import com.xdev.xdevbase.config.TenantContext;
+ import com.xdev.xdevbase.utils.AuditEntityListener;
  import jakarta.persistence.*;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.envers.Audited;
@@ -16,7 +17,7 @@ import java.util.UUID;
 
 @Audited
 @MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners(AuditEntityListener.class)
 public class BaseEntity implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
@@ -28,8 +29,10 @@ public class BaseEntity implements Serializable {
     private Boolean isDeleted = false;
 
     @CreatedBy
+    @Column(updatable = false)
     private String createdBy;
 
+    @Column(updatable = false)
     private LocalDateTime createdDate;
 
     @LastModifiedBy

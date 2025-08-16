@@ -10,6 +10,7 @@ import com.xdev.communicator.models.shared.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class FinancialTransactionDto   extends BaseDto {
     private TransactionType transactionType;
@@ -33,6 +34,11 @@ public class FinancialTransactionDto   extends BaseDto {
     private String externalTransactionId;
     private Double paidAmount;
     private Double unpaidAmount;
+    private UUID tenantId;
+    private String createdBy;
+    private LocalDateTime createdDate;
+    private String lastModifiedBy;
+    private LocalDateTime lastModifiedDate;
 
     @Override
     public String toString() {
@@ -224,5 +230,45 @@ public class FinancialTransactionDto   extends BaseDto {
 
     public void setUnpaidAmount(Double unpaidAmount) {
         this.unpaidAmount = unpaidAmount;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
+    }
+
+    public LocalDateTime getLastModifiedDate() {
+        return lastModifiedDate;
+    }
+
+    public void setLastModifiedDate(LocalDateTime lastModifiedDate) {
+        this.lastModifiedDate = lastModifiedDate;
     }
 }

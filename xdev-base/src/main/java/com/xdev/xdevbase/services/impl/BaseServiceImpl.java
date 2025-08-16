@@ -14,6 +14,7 @@ import com.xdev.xdevbase.models.SearchData;
 import com.xdev.xdevbase.models.SearchDetails;
 import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
+import com.xdev.xdevbase.utils.AuditHelper;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
 import com.xdev.xdevbase.utils.OSMLogger;
 import jakarta.persistence.EntityNotFoundException;
@@ -166,6 +167,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             } else {
                 E entity = this.modelMapper.map(request, this.entityClass);
                 resolveEntityRelations(entity);
+                AuditHelper.applyAuditOnCreate(entity);
 
                 E savedEntity = this.repository.save(entity);
                 OUTDTO result = this.modelMapper.map(savedEntity, this.outDTOClass);
@@ -198,7 +200,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 
                 entities = this.repository.saveAll(entities);
                 List<OUTDTO> result = entities.stream()
-                        .map((item) -> this.modelMapper.map(item, this.outDTOClass))
+                        .map(item -> {
+                            AuditHelper.applyAuditOnCreate(item);  // side effect
+                            return this.modelMapper.map(item, this.outDTOClass); // return value
+                        })
                         .toList();
 
                 OSMLogger.logMethodExit(this.getClass(), "save", "Saved " + result.size() + " entities");
@@ -230,6 +235,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     return null;
                 } else {
                     E existedEntity = existedOptEntity.get();
+                    AuditHelper.applyAuditOnCreate(existedEntity);  // side effect
                     this.modelMapper.map(request, existedEntity);
 
                     resolveEntityRelations(existedEntity);
@@ -1209,4 +1215,101 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             throw new RuntimeException("Failed to create Excel export", e);
         }
     }
+    // ===== audit helpers (put them near the bottom of the class) =====
+
+//    /** Try to extract a String userId from SecurityUtils' Map (osmUser.id -> String). */
+//    protected Optional<String> currentUserId() {
+//        try {
+//            return SecurityUtils.getCurrentOsmUser()
+//                    .map(osm -> {
+//                        Object id = osm.get("id");                 // preferred
+//                        if (id != null) return String.valueOf(id);
+//
+//                        // fallback: sometimes we only have "externalId" or the JWT "sub"
+//                        Object ext = osm.get("externalId");
+//                        if (ext != null) return String.valueOf(ext);
+//                        return null;
+//                    });
+//        } catch (Exception e) {
+//            LOGGER.warn("Could not resolve current user id from SecurityContext", e);
+//            return Optional.empty();
+//        }
+//    }
+//
+//    /** Generic setter via reflection if the field exists on the entity. */
+//    private void setIfPresent(Object target, String fieldName, Object value) {
+//        if (target == null || fieldName == null) return;
+//        Field f = getFieldFromClass(target.getClass(), fieldName);
+//        if (f == null) return;
+//        try {
+//            f.setAccessible(true);
+//            // Convert UUID/String intelligently
+//            if (value != null && f.getType() == UUID.class && !(value instanceof UUID)) {
+//                value = UUID.fromString(String.valueOf(value));
+//            }
+//            // Convert date-times if needed
+//            if (value == null && (f.getType() == Instant.class || f.getType() == LocalDateTime.class)) {
+//                return; // skip setting null to dates
+//            }
+//            if (value instanceof Instant v && f.getType() == LocalDateTime.class) {
+//                value = LocalDateTime.ofInstant(v, ZoneId.systemDefault());
+//            }
+//            f.set(target, value);
+//        } catch (Exception ex) {
+//            LOGGER.debug("Skipping audit set: {} -> {} ({})", fieldName, value, ex.getMessage());
+//        }
+//    }
+//
+//    /** Read value from DTO via reflection if present and non-null. */
+//    private Object getFromDtoIfPresent(INDTO dto, String fieldName) {
+//        if (dto == null || fieldName == null) return null;
+//        Field f = getFieldFromClass(dto.getClass(), fieldName);
+//        if (f == null) return null;
+//        try {
+//            f.setAccessible(true);
+//            return f.get(dto);
+//        } catch (Exception ignore) {
+//            return null;
+//        }
+//    }
+//
+//    /** Apply audit on CREATE: prefer DTO values, else SecurityContext. Also sets created/modified dates if present. */
+//    protected void applyAuditOnCreate(E entity, INDTO request) {
+//        // createdBy
+//        Object dtoCreatedBy = getFromDtoIfPresent(request, "createdBy");
+//        if (dtoCreatedBy != null) {
+//            setIfPresent(entity, "createdBy", dtoCreatedBy);
+//        } else {
+//            currentUserId().ifPresent(uid -> setIfPresent(entity, "createdBy", uid));
+//        }
+//
+//        // lastModifiedBy mirrors creator on create
+//        Object dtoLastMod = getFromDtoIfPresent(request, "lastModifiedBy");
+//        if (dtoLastMod != null) {
+//            setIfPresent(entity, "lastModifiedBy", dtoLastMod);
+//        } else {
+//            currentUserId().ifPresent(uid -> setIfPresent(entity, "lastModifiedBy", uid));
+//        }
+//
+//        // dates if present on the entity type
+//        setIfPresent(entity, "createdDate", Instant.now());
+//        setIfPresent(entity, "lastModifiedDate", Instant.now());
+//
+//        // tenant (you already have TenantContext – set if entity supports it)
+//        UUID tenantId = TenantContext.getCurrentTenant();
+//        if (tenantId != null) {
+//            setIfPresent(entity, "tenantId", tenantId);
+//        }
+//    }
+//
+//    /** Apply audit on UPDATE: prefer DTO lastModifiedBy, else SecurityContext. */
+//    protected void applyAuditOnUpdate(E entity, INDTO request) {
+//        Object dtoLastMod = getFromDtoIfPresent(request, "lastModifiedBy");
+//        if (dtoLastMod != null) {
+//            setIfPresent(entity, "lastModifiedBy", dtoLastMod);
+//        } else {
+//            currentUserId().ifPresent(uid -> setIfPresent(entity, "lastModifiedBy", uid));
+//        }
+//        setIfPresent(entity, "lastModifiedDate", Instant.now());
+//    }
 }
