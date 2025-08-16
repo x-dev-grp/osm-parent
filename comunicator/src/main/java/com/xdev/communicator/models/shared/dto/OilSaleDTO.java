@@ -25,7 +25,6 @@ public class OilSaleDTO extends BaseDto {
 
     // ==================== CUSTOMER INFORMATION ====================
 
-    private CustomerDto customer;
 
     // ==================== SUPPLIER INFORMATION ====================
 
@@ -85,13 +84,7 @@ public class OilSaleDTO extends BaseDto {
         this.saleDate = saleDate;
     }
 
-    public CustomerDto getCustomer() {
-        return customer;
-    }
 
-    public void setCustomer(CustomerDto customer) {
-        this.customer = customer;
-    }
 
     public SupplierDto getSupplier() {
         return supplier;

@@ -22,8 +22,7 @@ public class FinancialTransactionDto   extends BaseDto {
     private String checkNumber;
     private String lotNumber;
     private SupplierDto supplier;
-    private CustomerDto customer;
-    private ExpenseDto expense;
+     private ExpenseDto expense;
     private String description;
     private String invoiceReference;
     private String receiptReference;
@@ -52,8 +51,7 @@ public class FinancialTransactionDto   extends BaseDto {
                 ", checkNumber='" + checkNumber + '\'' +
                 ", lotNumber='" + lotNumber + '\'' +
                 ", supplier=" + supplier +
-                ", customer=" + customer +
-                ", expense=" + expense +
+                 ", expense=" + expense +
                 ", description='" + description + '\'' +
                 ", invoiceReference='" + invoiceReference + '\'' +
                 ", receiptReference='" + receiptReference + '\'' +
@@ -136,13 +134,7 @@ public class FinancialTransactionDto   extends BaseDto {
         this.supplier = supplier;
     }
 
-    public CustomerDto getCustomer() {
-        return customer;
-    }
 
-    public void setCustomer(CustomerDto customer) {
-        this.customer = customer;
-    }
 
     public ExpenseDto getExpense() {
         return expense;
