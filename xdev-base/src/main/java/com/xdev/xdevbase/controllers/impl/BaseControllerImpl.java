@@ -256,7 +256,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
                         Set<String> roles = Set.of("ADMIN","OSMADMIN");
                         if (!(roles.contains(role))) {
                             filteredActions = filteredActions.stream().filter(
-                                    actions::contains
+                                    a-> actions.contains(a.name())
                             ).collect(Collectors.toSet());
                         }
                         element.setActions(filteredActions);
