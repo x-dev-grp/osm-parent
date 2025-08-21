@@ -22,6 +22,8 @@ public enum Action {
     VALIDATE,
     PAY,
     GEN_PDF,
+    GEN_PDF_QC_OIL,
+    GEN_PDF_QC_OLIVE,
     APPROVE,
     REJECT,
     MAINTENANCE
