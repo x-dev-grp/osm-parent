@@ -24,6 +24,11 @@ public enum TransactionType {
     OIL_SALE,
     OIL_PURCHASE,
 
+    // ==================== WASTE-SPECIFIC TRANSACTIONS ====================
+    WASTE_SALE,
+    WASTE_PAYMENT,
+    WASTE_DISPOSAL_COST,
+
     // ==================== SUPPLIER/CUSTOMER TRANSACTIONS ====================
     SUPPLIER_PAYMENT,
     SUPPLIER_CREDIT,
