@@ -16,16 +16,35 @@ public class StorageUnitDto extends BaseDto {
 
     private LocalDateTime nextMaintenanceDate;
     private LocalDateTime lastInspectionDate;
-
+    private boolean paidStorage;
+    private double monthlyRentalPrice;
     private Double avgCost = 0.0;
     private Double totalCost = 0.0;
-
     private BaseTypeDto oilType;
     private StorageStatus status = StorageStatus.AVAILABLE;
-
     private LocalDateTime lastFillDate;
     private LocalDateTime lastEmptyDate;
     private SupplierDto supplier;
+
+
+    public StorageUnitDto() {
+    }
+
+    public boolean isPaidStorage() {
+        return paidStorage;
+    }
+
+    public void setPaidStorage(boolean paidStorage) {
+        this.paidStorage = paidStorage;
+    }
+
+    public double getMonthlyRentalPrice() {
+        return monthlyRentalPrice;
+    }
+
+    public void setMonthlyRentalPrice(double monthlyRentalPrice) {
+        this.monthlyRentalPrice = monthlyRentalPrice;
+    }
 
     public SupplierDto getSupplier() {
         return supplier;
@@ -35,28 +54,9 @@ public class StorageUnitDto extends BaseDto {
         this.supplier = supplier;
     }
 
-    public StorageUnitDto(String name, String location, String description, Double maxCapacity, Double currentVolume, LocalDateTime nextMaintenanceDate, LocalDateTime lastInspectionDate, BaseTypeDto oilType, StorageStatus status, LocalDateTime lastFillDate, LocalDateTime lastEmptyDate) {
-        this.name = name;
-        this.location = location;
-        this.description = description;
-        this.maxCapacity = maxCapacity;
-        this.currentVolume = currentVolume;
-        this.nextMaintenanceDate = nextMaintenanceDate;
-        this.lastInspectionDate = lastInspectionDate;
-        this.oilType = oilType;
-        this.status = status;
-        this.lastFillDate = lastFillDate;
-        this.lastEmptyDate = lastEmptyDate;
-    }
-
-    public StorageUnitDto() {
-    }
-
     // Optional helper for client-side rendering
     public double getFillPercentage() {
-        return maxCapacity != null && maxCapacity > 0
-                ? (currentVolume / maxCapacity) * 100.0
-                : 0.0;
+        return maxCapacity != null && maxCapacity > 0 ? (currentVolume / maxCapacity) * 100.0 : 0.0;
     }
 
     public String getName() {
