@@ -3,10 +3,7 @@ package com.xdev.communicator.models.shared.dto;
 
 
 import com.xdev.communicator.models.common.dtos.BaseDto;
-import com.xdev.communicator.models.shared.enums.Currency;
-import com.xdev.communicator.models.shared.enums.PaymentMethod;
-import com.xdev.communicator.models.shared.enums.TransactionDirection;
-import com.xdev.communicator.models.shared.enums.TransactionType;
+import com.xdev.communicator.models.shared.enums.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,6 +35,7 @@ public class FinancialTransactionDto   extends BaseDto {
     private LocalDateTime createdDate;
     private String lastModifiedBy;
     private LocalDateTime lastModifiedDate;
+    private OperationType operationType;
 
     @Override
     public String toString() {
@@ -262,5 +260,13 @@ public class FinancialTransactionDto   extends BaseDto {
 
     public void setLastModifiedDate(LocalDateTime lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
+    }
+
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(OperationType operationType) {
+        this.operationType = operationType;
     }
 }
