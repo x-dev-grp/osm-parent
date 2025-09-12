@@ -25,6 +25,7 @@ public enum Action {
     GEN_INVOICE,
     GEN_PDF_QC_OIL,
     GEN_PDF_QC_OLIVE,
+    GEN_PDF_PRODUCTION,
     APPROVE,
     REJECT,
     MAINTENANCE
