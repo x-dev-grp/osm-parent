@@ -28,6 +28,8 @@ public class UnifiedDeliveryDTO extends BaseDto {
     private DeliveryType deliveryType;
     private OperationType operationType;
     private Boolean paid;
+    private int trtDuration;
+    private Double poidsCamionVide;
 
     public Boolean getPaid() {
         return paid;
@@ -362,4 +364,23 @@ public class UnifiedDeliveryDTO extends BaseDto {
     public void setParcel(String parcel) {
         this.parcel = parcel;
     }
+
+    public int getTrtDuration() {
+        return trtDuration;
+    }
+
+    public void setTrtDuration(int trtDuration) {
+        this.trtDuration = trtDuration;
+    }
+
+
+    public Double getPoidsCamionVide() {
+        return poidsCamionVide;
+    }
+
+    public void setPoidsCamionVide(Double poidsCamionVide) {
+        this.poidsCamionVide = poidsCamionVide;
+    }
+
+
 }
