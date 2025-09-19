@@ -37,8 +37,6 @@ public class FinancialTransactionDto   extends BaseDto {
     private LocalDateTime lastModifiedDate;
     private OperationType operationType;
 
-    private ResourceName resourceName;
-
     public ResourceName getResourceName() {
         return resourceName;
     }
@@ -46,6 +44,8 @@ public class FinancialTransactionDto   extends BaseDto {
     public void setResourceName(ResourceName resourceName) {
         this.resourceName = resourceName;
     }
+
+    private ResourceName resourceName;
 
     @Override
     public String toString() {
