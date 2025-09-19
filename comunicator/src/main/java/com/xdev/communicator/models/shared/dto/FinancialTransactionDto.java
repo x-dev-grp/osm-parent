@@ -37,6 +37,16 @@ public class FinancialTransactionDto   extends BaseDto {
     private LocalDateTime lastModifiedDate;
     private OperationType operationType;
 
+    public ResourceName getResourceName() {
+        return resourceName;
+    }
+
+    public void setResourceName(ResourceName resourceName) {
+        this.resourceName = resourceName;
+    }
+
+    private ResourceName resourceName;
+
     @Override
     public String toString() {
         return "FinancialTransactionDto{" +

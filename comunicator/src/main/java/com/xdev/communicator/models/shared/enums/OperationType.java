@@ -9,4 +9,5 @@ public enum OperationType {
     EXCHANGE,
     SIMPLE_RECEPTION,
     INTERNAL_RECEPTION,
+    WASTE_SALE,
 }
