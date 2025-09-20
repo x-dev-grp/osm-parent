@@ -1,6 +1,7 @@
 package com.xdev.communicator.models.shared.dto;
 
 import com.xdev.communicator.models.common.dtos.BaseDto;
+import com.xdev.communicator.models.shared.enums.QualityGrades;
 import com.xdev.communicator.models.shared.enums.StorageStatus;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,8 @@ public class StorageUnitDto extends BaseDto {
     private LocalDateTime lastFillDate;
     private LocalDateTime lastEmptyDate;
     private SupplierDto supplier;
+    private QualityGrades qualityGrade;
+    private String lotNumber;
 
 
     public StorageUnitDto() {
@@ -162,4 +165,18 @@ public class StorageUnitDto extends BaseDto {
     public void setTotalCost(Double totalCost) {
         this.totalCost = totalCost;
     }
+
+    public QualityGrades getQualityGrade() {
+        return qualityGrade;
+    }
+
+
+    public String getLotNumber() {
+        return lotNumber;
+    }
+
+    public void setLotNumber(String lotNumber) {
+        this.lotNumber = lotNumber;
+    }
+
 }
