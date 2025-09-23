@@ -235,9 +235,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     return null;
                 } else {
                     E existedEntity = existedOptEntity.get();
-                    AuditHelper.applyAuditOnCreate(existedEntity);  // side effect
+                    AuditHelper.applyAuditOnCreate(existedEntity);
+                    UUID externalId=existedEntity.getExternalId();// side effect
                     this.modelMapper.map(request, existedEntity);
-
+                    existedEntity.setExternalId(externalId);
                     resolveEntityRelations(existedEntity);
 
                     E updatedEntity = this.repository.save(existedEntity);
