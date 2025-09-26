@@ -1,8 +1,12 @@
 package com.xdev.communicator.models.shared.dto;
 
 
-public class SupplierDto   {
-     private BaseTypeDto genericSupplierType;
+import com.xdev.communicator.models.common.dtos.BaseDto;
+import com.xdev.communicator.models.common.dtos.BaseTypeDto;
+
+
+public class SupplierDto extends BaseDto {
+    private BaseTypeDto genericSupplierType;
     private Boolean hasStorage;
     private String name;
     private String lastname;
