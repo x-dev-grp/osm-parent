@@ -8,10 +8,7 @@ import com.xdev.xdevbase.apiDTOs.SearchResponse;
 import com.xdev.xdevbase.config.TenantContext;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
-import com.xdev.xdevbase.models.ExportDetails;
-import com.xdev.xdevbase.models.FieldDetails;
-import com.xdev.xdevbase.models.SearchData;
-import com.xdev.xdevbase.models.SearchDetails;
+import com.xdev.xdevbase.models.*;
 import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
 import com.xdev.xdevbase.utils.AuditHelper;
@@ -66,6 +63,8 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
     protected Class<OUTDTO> outDTOClass;
     @Autowired
     private SearchSpecificationBuilder<E> specificationBuilder;
+
+    private ExportDetails currentExportDetails;
 
     protected BaseServiceImpl(BaseRepository<E> repository, ModelMapper modelMapper) {
         this.repository = repository;
@@ -448,31 +447,81 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
     }
 
 
+//    public byte[] exportToPdf(ExportDetails exportDetails) {
+//        long startTime = System.currentTimeMillis();
+//        OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
+//
+//        try {
+//            if(exportDetails.getSearchData().isFilterTenant()) {
+//                SearchDetails details = new SearchDetails();
+//                details.setEqualValue(TenantContext.getCurrentTenant());
+//                if(exportDetails.getSearchData().getSearchData() != null) {
+//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+//                }
+//            }
+//            // Get total count first to determine if pagination is needed
+//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+//
+//            SearchResponse<E, OUTDTO> countResponse = search(countData);
+//            long totalRecords = countResponse.getTotal();
+//
+//            byte[] result;
+//            // If total records exceed maximum per document, create multiple PDFs
+//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+//                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
+//            } else {
+//                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
+//            }
+//
+//            OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
+//            OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
+//            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
+//                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
+//
+//            return result;
+//        } catch (Exception e) {
+//            OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
+//            throw e;
+//        }
+//    }
+
     public byte[] exportToPdf(ExportDetails exportDetails) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
 
         try {
+            this.currentExportDetails = exportDetails; // Store for dynamic field processing
+
             if(exportDetails.getSearchData().isFilterTenant()) {
                 SearchDetails details = new SearchDetails();
                 details.setEqualValue(TenantContext.getCurrentTenant());
                 if(exportDetails.getSearchData().getSearchData() != null) {
-                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
                 }
             }
+
             // Get total count first to determine if pagination is needed
             SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-
             SearchResponse<E, OUTDTO> countResponse = search(countData);
             long totalRecords = countResponse.getTotal();
 
+            // Get sample data to process dynamic columns
+            SearchData sampleData = cloneSearchDataForCount(exportDetails.getSearchData());
+            sampleData.setSize(Math.min(100, (int) totalRecords)); // Sample first 100 records
+            SearchResponse<E, OUTDTO> sampleResponse = search(sampleData);
+
+            // Process collection fields and generate complete field list
+            List<FieldDetails> allFields = processCollectionFields(exportDetails, sampleResponse.getData());
+            exportDetails.setFieldDetails(allFields);
+
             byte[] result;
-            // If total records exceed maximum per document, create multiple PDFs
             if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, allFields, exportDetails.getFileName());
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
             } else {
-                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
+                result = createSinglePdf(exportDetails.getSearchData(), allFields, exportDetails.getFileName());
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
             }
 
@@ -485,9 +534,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         } catch (Exception e) {
             OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
             throw e;
+        } finally {
+            this.currentExportDetails = null; // Clear after use
         }
     }
-
     /**
      * Create a single PDF document
      *
@@ -667,30 +717,79 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      * @param exportDetails search criteria
      * @return CSV content as byte array (zipped if multiple files)
      */
+//    public byte[] exportToCsv(ExportDetails exportDetails) {
+//        long startTime = System.currentTimeMillis();
+//        OSMLogger.logMethodEntry(this.getClass(), "exportToCsv", exportDetails);
+//
+//        try {
+//            if(exportDetails.getSearchData().isFilterTenant()) {
+//                SearchDetails details = new SearchDetails();
+//                details.setEqualValue(TenantContext.getCurrentTenant());
+//                if(exportDetails.getSearchData().getSearchData() != null) {
+//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+//                }
+//            }
+//            // Get total count first to determine if pagination is needed
+//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+//            SearchResponse<E, OUTDTO> countResponse = search(countData);
+//            long totalRecords = countResponse.getTotal();
+//
+//            byte[] result;
+//            // If total records exceed maximum per document, create multiple CSVs
+//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+//                result = createMultipleCsvs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple CSVs for {} records", totalRecords);
+//            } else {
+//                result = createSingleCsv(exportDetails.getSearchData(), exportDetails.getFieldDetails());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single CSV for {} records", totalRecords);
+//            }
+//
+//            OSMLogger.logMethodExit(this.getClass(), "exportToCsv", "Generated " + result.length + " bytes");
+//            OSMLogger.logPerformance(this.getClass(), "exportToCsv", startTime, System.currentTimeMillis());
+//            OSMLogger.logBusinessEvent(this.getClass(), "CSV_GENERATED",
+//                    "CSV generated for " + totalRecords + " records (" + result.length + " bytes)");
+//
+//            return result;
+//        } catch (Exception e) {
+//            OSMLogger.logException(this.getClass(), "Error generating CSV export", e);
+//            throw e;
+//        }
+//    }
     public byte[] exportToCsv(ExportDetails exportDetails) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "exportToCsv", exportDetails);
 
         try {
+            this.currentExportDetails = exportDetails; // Store for dynamic field processing
+
             if(exportDetails.getSearchData().isFilterTenant()) {
                 SearchDetails details = new SearchDetails();
                 details.setEqualValue(TenantContext.getCurrentTenant());
                 if(exportDetails.getSearchData().getSearchData() != null) {
-                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
                 }
             }
+
             // Get total count first to determine if pagination is needed
             SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
             SearchResponse<E, OUTDTO> countResponse = search(countData);
             long totalRecords = countResponse.getTotal();
 
+            // Get sample data to process dynamic columns
+            SearchData sampleData = cloneSearchDataForCount(exportDetails.getSearchData());
+            sampleData.setSize(Math.min(100, (int) totalRecords)); // Sample first 100 records
+            SearchResponse<E, OUTDTO> sampleResponse = search(sampleData);
+
+            // Process collection fields and generate complete field list
+            List<FieldDetails> allFields = processCollectionFields(exportDetails, sampleResponse.getData());
+            exportDetails.setFieldDetails(allFields);
+
             byte[] result;
-            // If total records exceed maximum per document, create multiple CSVs
             if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-                result = createMultipleCsvs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+                result = createMultipleCsvs(exportDetails.getSearchData(), totalRecords, allFields, exportDetails.getFileName());
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple CSVs for {} records", totalRecords);
             } else {
-                result = createSingleCsv(exportDetails.getSearchData(), exportDetails.getFieldDetails());
+                result = createSingleCsv(exportDetails.getSearchData(), allFields);
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single CSV for {} records", totalRecords);
             }
 
@@ -703,9 +802,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         } catch (Exception e) {
             OSMLogger.logException(this.getClass(), "Error generating CSV export", e);
             throw e;
+        } finally {
+            this.currentExportDetails = null; // Clear after use
         }
     }
-
     /**
      * Create a single CSV document
      *
@@ -866,25 +966,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         }
     }
 
-    /**
-     * Get all fields available in the entity
-     *
-     * @return list of all field names
-     */
-    protected List<String> getAllEntityFields() {
-        return Arrays.stream(entityClass.getDeclaredFields())
-                .map(Field::getName)
-                .collect(Collectors.toList());
-    }
 
-    /**
-     * Get default fields to export (can be overridden by subclasses)
-     *
-     * @return list of default fields
-     */
-    protected List<String> getDefaultExportFields() {
-        return getAllEntityFields();
-    }
 
     /**
      * Clone search data for count query
@@ -910,60 +992,60 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      * @param fieldDetails fieldDetails
      * @return field value as string
      */
-    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
-        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
-            return "";
-        }
-
-        // Handle nested properties by splitting the field name by dots
-        String[] fieldPath = fieldDetails.getName().split("\\.");
-
-        try {
-            Object currentObject = entity;
-            Class<?> currentClass = outDTOClass;
-
-            // Traverse the object hierarchy
-            for (String currentField : fieldPath) {
-                if (currentObject == null) {
-                    return "";
-                }
-
-                // Get the field from the current class
-                Field field = getFieldFromClass(currentClass, currentField);
-                if (field == null) {
-                    return "";
-                }
-
-                field.setAccessible(true);
-                currentObject = field.get(currentObject);
-
-                // Update the class for the next iteration if we have more fields to traverse
-                if (currentObject != null) {
-                    currentClass = currentObject.getClass();
-                }
-            }
-            if (currentObject != null) {
-                if (fieldDetails.isEnumValue() &&
-                        fieldDetails.getEnumValues() != null &&
-                        !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString())!=null) {
-                    return fieldDetails.getEnumValues().get(currentObject.toString());
-                }
-                return switch (currentObject) {
-                    case LocalDate localDate -> localDate.format(DATE_TIME_FORMATTER);
-                    case LocalDateTime localDateTime -> localDateTime.format(TIME_FORMATTER);
-                    case OffsetDateTime offsetDateTime -> offsetDateTime.format(OFFSET_DATE_TIME_FORMATTER1);
-                    case ZonedDateTime zonedDateTime -> zonedDateTime.format(ZONED_DATE_TIME_FORMATTER1);
-                    case Instant instant -> TIME_FORMATTER.withZone(ZoneId.systemDefault()).format(instant);
-                    default -> currentObject.toString();
-                };
-            }
-            return "";
-        } catch (IllegalAccessException e) {
-            // Log the error if needed
-            LOGGER.error("Error accessing field " + fieldDetails.getName(), e);
-            return "";
-        }
-    }
+//    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
+//        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
+//            return "";
+//        }
+//
+//        // Handle nested properties by splitting the field name by dots
+//        String[] fieldPath = fieldDetails.getName().split("\\.");
+//
+//        try {
+//            Object currentObject = entity;
+//            Class<?> currentClass = outDTOClass;
+//
+//            // Traverse the object hierarchy
+//            for (String currentField : fieldPath) {
+//                if (currentObject == null) {
+//                    return "";
+//                }
+//
+//                // Get the field from the current class
+//                Field field = getFieldFromClass(currentClass, currentField);
+//                if (field == null) {
+//                    return "";
+//                }
+//
+//                field.setAccessible(true);
+//                currentObject = field.get(currentObject);
+//
+//                // Update the class for the next iteration if we have more fields to traverse
+//                if (currentObject != null) {
+//                    currentClass = currentObject.getClass();
+//                }
+//            }
+//            if (currentObject != null) {
+//                if (fieldDetails.isEnumValue() &&
+//                        fieldDetails.getEnumValues() != null &&
+//                        !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString())!=null) {
+//                    return fieldDetails.getEnumValues().get(currentObject.toString());
+//                }
+//                return switch (currentObject) {
+//                    case LocalDate localDate -> localDate.format(DATE_TIME_FORMATTER);
+//                    case LocalDateTime localDateTime -> localDateTime.format(TIME_FORMATTER);
+//                    case OffsetDateTime offsetDateTime -> offsetDateTime.format(OFFSET_DATE_TIME_FORMATTER1);
+//                    case ZonedDateTime zonedDateTime -> zonedDateTime.format(ZONED_DATE_TIME_FORMATTER1);
+//                    case Instant instant -> TIME_FORMATTER.withZone(ZoneId.systemDefault()).format(instant);
+//                    default -> currentObject.toString();
+//                };
+//            }
+//            return "";
+//        } catch (IllegalAccessException e) {
+//            // Log the error if needed
+//            LOGGER.error("Error accessing field " + fieldDetails.getName(), e);
+//            return "";
+//        }
+//    }
     /**
      * Helper method to get a field from a class or its superclasses
      */
@@ -983,47 +1065,106 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
     }
 
 
-    public byte[] exportToExcel(ExportDetails exportDetails) {
-        long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
+//    public byte[] exportToExcel(ExportDetails exportDetails) {
+//        long startTime = System.currentTimeMillis();
+//        OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
+//
+//        try {
+//            // Get total count to determine if pagination is needed
+//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+//            SearchResponse<E, OUTDTO> countResponse = search(countData);
+//            long totalRecords = countResponse.getTotal();
+//
+//            byte[] result;
+//            // Only create multiple Excel files if total records exceed maximum per document
+//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+//                result = createMultipleExcelFiles(
+//                        exportDetails.getSearchData(),
+//                        totalRecords,
+//                        exportDetails.getFieldDetails(),
+//                        exportDetails.getFileName()
+//                );
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple Excel files for {} records", totalRecords);
+//            } else {
+//                result = createSingleExcelFile(
+//                        exportDetails.getSearchData(),
+//                        exportDetails.getFieldDetails(),
+//                        exportDetails.getFileName()
+//                );
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single Excel file for {} records", totalRecords);
+//            }
+//
+//            OSMLogger.logMethodExit(this.getClass(), "exportToExcel", "Generated " + result.length + " bytes");
+//            OSMLogger.logPerformance(this.getClass(), "exportToExcel", startTime, System.currentTimeMillis());
+//            OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED",
+//                    "Excel file generated for " + totalRecords + " records (" + result.length + " bytes)");
+//
+//            return result;
+//        } catch (Exception e) {
+//            OSMLogger.logException(this.getClass(), "Error generating Excel export", e);
+//            throw e;
+//        }
+//    }
+public byte[] exportToExcel(ExportDetails exportDetails) {
+    long startTime = System.currentTimeMillis();
+    OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
 
-        try {
-            // Get total count to determine if pagination is needed
-            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-            SearchResponse<E, OUTDTO> countResponse = search(countData);
-            long totalRecords = countResponse.getTotal();
+    try {
+        this.currentExportDetails = exportDetails; // Store for dynamic field processing
 
-            byte[] result;
-            // Only create multiple Excel files if total records exceed maximum per document
-            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-                result = createMultipleExcelFiles(
-                        exportDetails.getSearchData(),
-                        totalRecords,
-                        exportDetails.getFieldDetails(),
-                        exportDetails.getFileName()
-                );
-                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple Excel files for {} records", totalRecords);
-            } else {
-                result = createSingleExcelFile(
-                        exportDetails.getSearchData(),
-                        exportDetails.getFieldDetails(),
-                        exportDetails.getFileName()
-                );
-                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single Excel file for {} records", totalRecords);
+        if(exportDetails.getSearchData().isFilterTenant()) {
+            SearchDetails details = new SearchDetails();
+            details.setEqualValue(TenantContext.getCurrentTenant());
+            if(exportDetails.getSearchData().getSearchData() != null) {
+                exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
             }
-
-            OSMLogger.logMethodExit(this.getClass(), "exportToExcel", "Generated " + result.length + " bytes");
-            OSMLogger.logPerformance(this.getClass(), "exportToExcel", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED",
-                    "Excel file generated for " + totalRecords + " records (" + result.length + " bytes)");
-
-            return result;
-        } catch (Exception e) {
-            OSMLogger.logException(this.getClass(), "Error generating Excel export", e);
-            throw e;
         }
-    }
 
+        // Get total count to determine if pagination is needed
+        SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+        SearchResponse<E, OUTDTO> countResponse = search(countData);
+        long totalRecords = countResponse.getTotal();
+
+        // Get sample data to process dynamic columns
+        SearchData sampleData = cloneSearchDataForCount(exportDetails.getSearchData());
+        sampleData.setSize(Math.min(100, (int) totalRecords)); // Sample first 100 records
+        SearchResponse<E, OUTDTO> sampleResponse = search(sampleData);
+
+        // Process collection fields and generate complete field list
+        List<FieldDetails> allFields = processCollectionFields(exportDetails, sampleResponse.getData());
+        exportDetails.setFieldDetails(allFields);
+
+        byte[] result;
+        if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+            result = createMultipleExcelFiles(
+                    exportDetails.getSearchData(),
+                    totalRecords,
+                    allFields,
+                    exportDetails.getFileName()
+            );
+            OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple Excel files for {} records", totalRecords);
+        } else {
+            result = createSingleExcelFile(
+                    exportDetails.getSearchData(),
+                    allFields,
+                    exportDetails.getFileName()
+            );
+            OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single Excel file for {} records", totalRecords);
+        }
+
+        OSMLogger.logMethodExit(this.getClass(), "exportToExcel", "Generated " + result.length + " bytes");
+        OSMLogger.logPerformance(this.getClass(), "exportToExcel", startTime, System.currentTimeMillis());
+        OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED",
+                "Excel file generated for " + totalRecords + " records (" + result.length + " bytes)");
+
+        return result;
+    } catch (Exception e) {
+        OSMLogger.logException(this.getClass(), "Error generating Excel export", e);
+        throw e;
+    } finally {
+        this.currentExportDetails = null; // Clear after use
+    }
+}
     private byte[] createSingleExcelFile(SearchData searchData, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "createSingleExcelFile", "fileName: " + fileName + ", fields: " + fieldsToExport.size());
@@ -1216,101 +1357,199 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             throw new RuntimeException("Failed to create Excel export", e);
         }
     }
-    // ===== audit helpers (put them near the bottom of the class) =====
 
-//    /** Try to extract a String userId from SecurityUtils' Map (osmUser.id -> String). */
-//    protected Optional<String> currentUserId() {
-//        try {
-//            return SecurityUtils.getCurrentOsmUser()
-//                    .map(osm -> {
-//                        Object id = osm.get("id");                 // preferred
-//                        if (id != null) return String.valueOf(id);
-//
-//                        // fallback: sometimes we only have "externalId" or the JWT "sub"
-//                        Object ext = osm.get("externalId");
-//                        if (ext != null) return String.valueOf(ext);
-//                        return null;
-//                    });
-//        } catch (Exception e) {
-//            LOGGER.warn("Could not resolve current user id from SecurityContext", e);
-//            return Optional.empty();
-//        }
-//    }
-//
-//    /** Generic setter via reflection if the field exists on the entity. */
-//    private void setIfPresent(Object target, String fieldName, Object value) {
-//        if (target == null || fieldName == null) return;
-//        Field f = getFieldFromClass(target.getClass(), fieldName);
-//        if (f == null) return;
-//        try {
-//            f.setAccessible(true);
-//            // Convert UUID/String intelligently
-//            if (value != null && f.getType() == UUID.class && !(value instanceof UUID)) {
-//                value = UUID.fromString(String.valueOf(value));
-//            }
-//            // Convert date-times if needed
-//            if (value == null && (f.getType() == Instant.class || f.getType() == LocalDateTime.class)) {
-//                return; // skip setting null to dates
-//            }
-//            if (value instanceof Instant v && f.getType() == LocalDateTime.class) {
-//                value = LocalDateTime.ofInstant(v, ZoneId.systemDefault());
-//            }
-//            f.set(target, value);
-//        } catch (Exception ex) {
-//            LOGGER.debug("Skipping audit set: {} -> {} ({})", fieldName, value, ex.getMessage());
-//        }
-//    }
-//
-//    /** Read value from DTO via reflection if present and non-null. */
-//    private Object getFromDtoIfPresent(INDTO dto, String fieldName) {
-//        if (dto == null || fieldName == null) return null;
-//        Field f = getFieldFromClass(dto.getClass(), fieldName);
-//        if (f == null) return null;
-//        try {
-//            f.setAccessible(true);
-//            return f.get(dto);
-//        } catch (Exception ignore) {
-//            return null;
-//        }
-//    }
-//
-//    /** Apply audit on CREATE: prefer DTO values, else SecurityContext. Also sets created/modified dates if present. */
-//    protected void applyAuditOnCreate(E entity, INDTO request) {
-//        // createdBy
-//        Object dtoCreatedBy = getFromDtoIfPresent(request, "createdBy");
-//        if (dtoCreatedBy != null) {
-//            setIfPresent(entity, "createdBy", dtoCreatedBy);
-//        } else {
-//            currentUserId().ifPresent(uid -> setIfPresent(entity, "createdBy", uid));
-//        }
-//
-//        // lastModifiedBy mirrors creator on create
-//        Object dtoLastMod = getFromDtoIfPresent(request, "lastModifiedBy");
-//        if (dtoLastMod != null) {
-//            setIfPresent(entity, "lastModifiedBy", dtoLastMod);
-//        } else {
-//            currentUserId().ifPresent(uid -> setIfPresent(entity, "lastModifiedBy", uid));
-//        }
-//
-//        // dates if present on the entity type
-//        setIfPresent(entity, "createdDate", Instant.now());
-//        setIfPresent(entity, "lastModifiedDate", Instant.now());
-//
-//        // tenant (you already have TenantContext – set if entity supports it)
-//        UUID tenantId = TenantContext.getCurrentTenant();
-//        if (tenantId != null) {
-//            setIfPresent(entity, "tenantId", tenantId);
-//        }
-//    }
-//
-//    /** Apply audit on UPDATE: prefer DTO lastModifiedBy, else SecurityContext. */
-//    protected void applyAuditOnUpdate(E entity, INDTO request) {
-//        Object dtoLastMod = getFromDtoIfPresent(request, "lastModifiedBy");
-//        if (dtoLastMod != null) {
-//            setIfPresent(entity, "lastModifiedBy", dtoLastMod);
-//        } else {
-//            currentUserId().ifPresent(uid -> setIfPresent(entity, "lastModifiedBy", uid));
-//        }
-//        setIfPresent(entity, "lastModifiedDate", Instant.now());
-//    }
+    private List<FieldDetails> processCollectionFields(ExportDetails exportDetails, List<OUTDTO> sampleData) {
+        List<FieldDetails> allFields = new ArrayList<>(exportDetails.getFieldDetails());
+
+        if (exportDetails.getCollectionFields() == null || exportDetails.getCollectionFields().isEmpty()) {
+            return allFields;
+        }
+
+        // Use a sample of data to determine dynamic columns
+        Set<String> dynamicColumns = new HashSet<>();
+
+        for (CollectionFieldDetails collectionField : exportDetails.getCollectionFields()) {
+            Set<String> columnNames = extractColumnNamesFromCollection(sampleData, collectionField);
+
+            for (String columnName : columnNames) {
+                String prefixedName = collectionField.getColumnPrefix() != null
+                        ? collectionField.getColumnPrefix() + columnName
+                        : columnName;
+
+                if (!dynamicColumns.contains(prefixedName)) {
+                    FieldDetails dynamicField = new FieldDetails();
+                    dynamicField.setName(collectionField.getCollectionPath() + "." + columnName);
+                    dynamicField.setLabel(prefixedName);
+                    dynamicField.setDynamicColumn(true);
+                    dynamicField.setSourceCollection(collectionField.getCollectionPath());
+
+                    allFields.add(dynamicField);
+                    dynamicColumns.add(prefixedName);
+                }
+            }
+        }
+
+        return allFields;
+    }
+    private Set<String> extractColumnNamesFromCollection(List<OUTDTO> data, CollectionFieldDetails collectionField) {
+        Set<String> columnNames = new HashSet<>();
+
+        for (OUTDTO entity : data) {
+            try {
+                Object collection = getNestedFieldValue(entity, collectionField.getCollectionPath());
+                if (collection instanceof Collection) {
+                    for (Object item : (Collection<?>) collection) {
+                        String columnName = getNestedFieldValueAsString(item, collectionField.getNameField());
+                        if (columnName != null && !columnName.isEmpty()) {
+                            columnNames.add(columnName);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                OSMLogger.logException(this.getClass(), "Error extracting column names from collection", e);
+            }
+        }
+
+        return columnNames;
+    }
+    private Object getNestedFieldValue(Object entity, String fieldPath) throws IllegalAccessException {
+        if (entity == null || fieldPath == null || fieldPath.isEmpty()) {
+            return null;
+        }
+
+        String[] pathParts = fieldPath.split("\\.");
+        Object currentObject = entity;
+        Class<?> currentClass = entity.getClass();
+
+        for (String fieldName : pathParts) {
+            if (currentObject == null) {
+                return null;
+            }
+
+            Field field = getFieldFromClass(currentClass, fieldName);
+            if (field == null) {
+                return null;
+            }
+
+            field.setAccessible(true);
+            currentObject = field.get(currentObject);
+
+            if (currentObject != null) {
+                currentClass = currentObject.getClass();
+            }
+        }
+
+        return currentObject;
+    }
+    private String getNestedFieldValueAsString(Object entity, String fieldPath) {
+        try {
+            Object value = getNestedFieldValue(entity, fieldPath);
+            return value != null ? value.toString() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    private String getDynamicCollectionFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
+        try {
+            // Find the collection field configuration
+            CollectionFieldDetails collectionConfig = findCollectionConfig(fieldDetails.getSourceCollection());
+            if (collectionConfig == null) {
+                return "";
+            }
+
+            // Get the collection
+            Object collection = getNestedFieldValue(entity, collectionConfig.getCollectionPath());
+            if (!(collection instanceof Collection)) {
+                return "";
+            }
+
+            // Extract the column name from the field details
+            String targetColumnName = fieldDetails.getLabel();
+            if (collectionConfig.getColumnPrefix() != null) {
+                targetColumnName = targetColumnName.replace(collectionConfig.getColumnPrefix(), "");
+            }
+
+            // Find the matching item in the collection
+            for (Object item : (Collection<?>) collection) {
+                String itemColumnName = getNestedFieldValueAsString(item, collectionConfig.getNameField());
+                if (targetColumnName.equals(itemColumnName)) {
+                    return getNestedFieldValueAsString(item, collectionConfig.getValueField());
+                }
+            }
+
+            return "";
+        } catch (Exception e) {
+            OSMLogger.logException(this.getClass(), "Error getting dynamic collection field value", e);
+            return "";
+        }
+    }
+    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
+        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
+            return "";
+        }
+
+        // Handle dynamic columns from collections
+        if (fieldDetails.isDynamicColumn() && fieldDetails.getSourceCollection() != null) {
+            return getDynamicCollectionFieldValue(entity, fieldDetails);
+        }
+
+        // Handle regular fields (existing logic)
+        String[] fieldPath = fieldDetails.getName().split("\\.");
+
+        try {
+            Object currentObject = entity;
+            Class<?> currentClass = outDTOClass;
+
+            for (String currentField : fieldPath) {
+                if (currentObject == null) {
+                    return "";
+                }
+
+                Field field = getFieldFromClass(currentClass, currentField);
+                if (field == null) {
+                    return "";
+                }
+
+                field.setAccessible(true);
+                currentObject = field.get(currentObject);
+
+                if (currentObject != null) {
+                    currentClass = currentObject.getClass();
+                }
+            }
+
+            if (currentObject != null) {
+                if (fieldDetails.isEnumValue() &&
+                        fieldDetails.getEnumValues() != null &&
+                        !fieldDetails.getEnumValues().isEmpty() &&
+                        fieldDetails.getEnumValues().get(currentObject.toString()) != null) {
+                    return fieldDetails.getEnumValues().get(currentObject.toString());
+                }
+                return formatFieldValue(currentObject);
+            }
+            return "";
+        } catch (IllegalAccessException e) {
+            LOGGER.error("Error accessing field " + fieldDetails.getName(), e);
+            return "";
+        }
+    }
+    private CollectionFieldDetails findCollectionConfig(String collectionPath) {
+        if (currentExportDetails != null && currentExportDetails.getCollectionFields() != null) {
+            return currentExportDetails.getCollectionFields().stream()
+                    .filter(config -> collectionPath.equals(config.getCollectionPath()))
+                    .findFirst()
+                    .orElse(null);
+        }
+        return null;
+    }
+    private String formatFieldValue(Object value) {
+        return switch (value) {
+            case LocalDate localDate -> localDate.format(DATE_TIME_FORMATTER);
+            case LocalDateTime localDateTime -> localDateTime.format(TIME_FORMATTER);
+            case OffsetDateTime offsetDateTime -> offsetDateTime.format(OFFSET_DATE_TIME_FORMATTER1);
+            case ZonedDateTime zonedDateTime -> zonedDateTime.format(ZONED_DATE_TIME_FORMATTER1);
+            case Instant instant -> TIME_FORMATTER.withZone(ZoneId.systemDefault()).format(instant);
+            default -> value.toString();
+        };
+    }
 }
