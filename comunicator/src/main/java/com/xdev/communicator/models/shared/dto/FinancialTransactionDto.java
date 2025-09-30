@@ -4,7 +4,7 @@ package com.xdev.communicator.models.shared.dto;
 
 import com.xdev.communicator.models.common.dtos.BaseDto;
 import com.xdev.communicator.models.shared.enums.*;
-
+import com.xdev.communicator.models.common.dtos.SupplierDto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
