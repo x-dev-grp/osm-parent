@@ -6,6 +6,16 @@ public class ChildLotCompletionDto {
     private Double rendement;
     private Double unpaidPrice;
 
+    private boolean autoSetStorage;
+
+    public boolean isAutoSetStorage() {
+        return autoSetStorage;
+    }
+
+    public void setAutoSetStorage(boolean autoSetStorage) {
+        this.autoSetStorage = autoSetStorage;
+    }
+
     public ChildLotCompletionDto() {}
     public String getLotNumber() { return lotNumber; }
     public void setLotNumber(String lotNumber) { this.lotNumber = lotNumber; }

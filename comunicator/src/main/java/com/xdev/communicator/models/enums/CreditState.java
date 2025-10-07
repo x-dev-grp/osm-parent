@@ -17,4 +17,12 @@ public enum CreditState {
      */
     SETTLED,
 
+
+    /**
+     * The approved credit has been applied to the storage unit/account.
+     */
+    APPROVED,
+
+
+
 }

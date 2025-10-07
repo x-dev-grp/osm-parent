@@ -259,8 +259,10 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
                                     a-> actions.contains(a.name())
                             ).collect(Collectors.toSet());
                         }
-                        element.setActions(filteredActions);
-                    }
+                        SortedSet<Action> sortedActions = new TreeSet<>(Comparator.comparing(Action::name));
+                        sortedActions.addAll(filteredActions);
+                        element.setActions(sortedActions);
+                     }
             ).toList();
             response.setData(dtos);
 

@@ -4,7 +4,12 @@ package com.xdev.communicator.models.enums;
  * Transaction types for the universal financial transaction model
  */
 public enum TransactionType {
-    
+
+        RECEPTION_IN,
+        TRANSFER_IN,
+        SALE,
+        EXCHANGE,
+
     // ==================== PAYMENT TRANSACTIONS ====================
     PAYMENT,
 

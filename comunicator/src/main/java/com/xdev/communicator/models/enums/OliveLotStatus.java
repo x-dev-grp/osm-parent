@@ -8,12 +8,17 @@ package com.xdev.communicator.models.enums;
 public enum OliveLotStatus {
 
     NEW,
+    OLIVE_CONTROLLED,
+    OIL_CONTROLLED,
     WAITING,
+    WAITING_FOR_PRICING,
+    WAITING_FOR_PAYMENT_DETAILS,
+    PROD_READY,
+    STOCK_READY,
     IN_PROGRESS,
-    CONTROLLED,
     COMPLETED,
     REFUSED,
-    CANCELLED
-
+    CANCELLED,
+    IN_STOCK
 
 }
