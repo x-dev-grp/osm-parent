@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum RuleType {
     NUMERIC,
     BOOLEAN,
-    STRING ;
+    STRING ,
+    RAW_STRING;
     @JsonCreator
     public static RuleType fromString(String key) {
         return key == null ? null : RuleType.valueOf(key.trim().toUpperCase());

@@ -6,6 +6,15 @@ public class ExportDetails {
     private SearchData searchData;
     private List<FieldDetails> fieldDetails;
     private String fileName;
+    private List<CollectionFieldDetails> collectionFields;
+
+    public List<CollectionFieldDetails> getCollectionFields() {
+        return collectionFields;
+    }
+
+    public void setCollectionFields(List<CollectionFieldDetails> collectionFields) {
+        this.collectionFields = collectionFields;
+    }
 
     public SearchData getSearchData() {
         return searchData;
