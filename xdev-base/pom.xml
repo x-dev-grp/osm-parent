@@ -92,12 +92,6 @@
              <artifactId>poi-ooxml</artifactId>
             <version>5.2.3</version>
          </dependency>
-
-        <dependency>
-            <groupId>net.sf.jasperreports</groupId>
-            <artifactId>jasperreports</artifactId>
-            <version>6.20.6</version>
-        </dependency>
     </dependencies>
 
 </project>
