@@ -9,5 +9,7 @@ public enum OperationType {
     EXCHANGE,
     SIMPLE_RECEPTION,
     INTERNAL_RECEPTION,
-    WASTE_SALE,
+    WASTE_SALE, OIL_CONTAINER_SALE,
+    OIL_SALE_PAYMENT
+
 }

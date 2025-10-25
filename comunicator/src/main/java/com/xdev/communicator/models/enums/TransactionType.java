@@ -27,6 +27,7 @@ public enum TransactionType {
     
     // ==================== OIL-SPECIFIC TRANSACTIONS ====================
     OIL_SALE,
+    OIL_CONTAINER_SALE,
     OIL_PURCHASE,
 
     // ==================== WASTE-SPECIFIC TRANSACTIONS ====================
