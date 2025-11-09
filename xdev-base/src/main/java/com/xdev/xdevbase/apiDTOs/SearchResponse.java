@@ -3,19 +3,31 @@ package com.xdev.xdevbase.apiDTOs;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 public class SearchResponse<T extends BaseEntity, D extends BaseDto<T>> {
     private long total;
     private List<D> data;
     private int totalPages;
     private int page;
-
-    public SearchResponse(long total, List<D> data, int totalPages, int page) {
+    private Map<String, Double> totals =null;
+    public SearchResponse(long total, List<D> data, int totalPages, int page,Map<String, Double> totals) {
         this.total = total;
         this.data = data;
         this.totalPages = totalPages;
         this.page = page;
+        this.totals = totals;
+
+    }
+
+    public Map<String, Double> getTotals() {
+        return totals;
+    }
+
+    public void setTotals(Map<String, Double> totals) {
+        this.totals = totals;
     }
 
     // Getters and setters

@@ -1,5 +1,7 @@
 package com.xdev.xdevbase.models;
 
+import java.util.Set;
+
 public class SearchData {
     private Integer page;
     private Integer size;
@@ -7,6 +9,15 @@ public class SearchData {
     private String order;
     private SearchModel searchData;
     private boolean filterTenant =true;
+    private Set<String> toCalculateTotal=null;
+
+    public Set<String> getToCalculateTotal() {
+        return toCalculateTotal;
+    }
+
+    public void setToCalculateTotal(Set<String> toCalculateTotal) {
+        this.toCalculateTotal = toCalculateTotal;
+    }
 
     public boolean isFilterTenant() {
         return filterTenant;
