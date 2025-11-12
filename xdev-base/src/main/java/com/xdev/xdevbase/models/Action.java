@@ -2,6 +2,7 @@ package com.xdev.xdevbase.models;
 
 public enum Action {
     READ,
+    DETAIL,
     CREATE,
     UPDATE,
     DELETE,

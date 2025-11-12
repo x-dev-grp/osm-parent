@@ -224,7 +224,7 @@ public class OSMLogger {
      */
     public static void logDataAccess(Class<?> clazz, String operation, String entity) {
         Logger logger = getLogger(clazz);
-        logger.debug("💾 DATA ACCESS: {} {} with ID: {}", operation, entity);
+        logger.debug("💾 DATA ACCESS: {}   with ID: {}", operation, entity);
     }
 
     /**

@@ -11,8 +11,8 @@ import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.*;
 import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
-import com.xdev.xdevbase.utils.AuditHelper;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
+import com.xdev.xdevbase.utils.AuditHelper;
 import com.xdev.xdevbase.utils.OSMLogger;
 import jakarta.persistence.EntityNotFoundException;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -43,17 +43,16 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @SuppressWarnings("unchecked")
-public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDto<E>, OUTDTO extends BaseDto<E>> implements BaseService<E, INDTO, OUTDTO> {
+public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDto<E>, OUTDTO extends BaseDto<E>> implements BaseService<E, INDTO, OUTDTO> {
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final int MAX_RECORDS_PER_DOCUMENT = 1000;
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final DateTimeFormatter OFFSET_DATE_TIME_FORMATTER1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX");
     public static final DateTimeFormatter ZONED_DATE_TIME_FORMATTER1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
+    private static final int MAX_RECORDS_PER_DOCUMENT = 1000;
     protected final BaseRepository<E> repository;
     protected final ModelMapper modelMapper;
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
@@ -72,6 +71,14 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         this.entityClass = (Class<E>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         this.inDTOClass = (Class<INDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
         this.outDTOClass = (Class<OUTDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[2];
+    }
+
+    private static double toDouble(Object v) {
+        if (v == null) return 0.0;
+        if (v instanceof Number n) {
+            return n.doubleValue();
+        }
+        return 0.0;
     }
 
     @Override
@@ -141,7 +148,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             Sort.Direction sortDirection = Sort.Direction.fromString(direction);  // "ASC" or "DESC"
             Sort sortObject = Sort.by(sortDirection, sort);  // Sort by the field and direction
             Pageable pageable = PageRequest.of(page, size, sortObject);
-            Page<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId,pageable);
+            Page<E> data = repository.findAllByTenantIdAndIsDeletedFalse(tenantId, pageable);
 
             Page<OUTDTO> result = data.map(item -> modelMapper.map(item, outDTOClass));
             OSMLogger.logMethodExit(this.getClass(), "findAll", "Page " + page + " with " + result.getContent().size() + " entities");
@@ -191,19 +198,15 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 
         try {
             if (request != null && !request.isEmpty()) {
-                List<E> entities = request.stream()
-                        .map((item) -> this.modelMapper.map(item, this.entityClass))
-                        .toList();
+                List<E> entities = request.stream().map((item) -> this.modelMapper.map(item, this.entityClass)).toList();
 
                 entities.forEach(this::resolveEntityRelations);
 
                 entities = this.repository.saveAll(entities);
-                List<OUTDTO> result = entities.stream()
-                        .map(item -> {
-                            AuditHelper.applyAuditOnCreate(item);  // side effect
-                            return this.modelMapper.map(item, this.outDTOClass); // return value
-                        })
-                        .toList();
+                List<OUTDTO> result = entities.stream().map(item -> {
+                    AuditHelper.applyAuditOnCreate(item);  // side effect
+                    return this.modelMapper.map(item, this.outDTOClass); // return value
+                }).toList();
 
                 OSMLogger.logMethodExit(this.getClass(), "save", "Saved " + result.size() + " entities");
                 OSMLogger.logPerformance(this.getClass(), "save", startTime, System.currentTimeMillis());
@@ -235,7 +238,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                 } else {
                     E existedEntity = existedOptEntity.get();
                     AuditHelper.applyAuditOnCreate(existedEntity);
-                    UUID externalId=existedEntity.getExternalId();// side effect
+                    UUID externalId = existedEntity.getExternalId();// side effect
                     this.modelMapper.map(request, existedEntity);
                     existedEntity.setExternalId(externalId);
                     resolveEntityRelations(existedEntity);
@@ -275,7 +278,6 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             throw e;
         }
     }
-
 
     @Override
     public void remove(UUID id) {
@@ -352,7 +354,6 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         }
     }
 
-
     @Override
     public Optional<Revision<Integer, E>> findLastRevisionById(UUID id) {
         long startTime = System.currentTimeMillis();
@@ -393,42 +394,79 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         OSMLogger.logMethodEntry(this.getClass(), "search", searchData);
 
         try {
-            int page = searchData.getPage() != null ? searchData.getPage() : 0;
-            int size = searchData.getSize() != null ? searchData.getSize() : 10;
-            Sort.Direction direction = (searchData.getOrder() != null && searchData.getOrder().equalsIgnoreCase("DESC")) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            String sort = searchData.getSort() != null ? searchData.getSort() : "createdDate";
+            int page = (searchData.getPage() != null && searchData.getPage() >= 0) ? searchData.getPage() : 0;
+            int size = (searchData.getSize() != null && searchData.getSize() > 0) ? searchData.getSize() : 10;
+            Sort.Direction direction = ("DESC".equalsIgnoreCase(searchData.getOrder())) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            String sort = (searchData.getSort() != null && !searchData.getSort().isBlank()) ? searchData.getSort() : "createdDate";
             Pageable pageable = PageRequest.of(page, size, direction, sort);
-             if(searchData.isFilterTenant()) {
-                 SearchDetails details = new SearchDetails();
-                 details.setEqualValue(TenantContext.getCurrentTenant());
-                 if(searchData.getSearchData() != null) {
-                     searchData.getSearchData().getSearch().put("tenantId",details);
-                 }
-             }
+            if (searchData.isFilterTenant()) {
+                SearchDetails details = new SearchDetails();
+                details.setEqualValue(TenantContext.getCurrentTenant());
+                if (searchData.getSearchData() != null) {
+                    if (searchData.getSearchData().getSearch() == null) {
+                        searchData.getSearchData().setSearch(new HashMap<>());
+                    }
+                    searchData.getSearchData().getSearch().put("tenantId", details);
+                }
+            }
             Specification<E> spec = null;
             if (searchData.getSearchData() != null) {
                 spec = specificationBuilder.buildSpecification(searchData.getSearchData());
             }
-
             Page<E> result;
+            Page<E> totalPagesResult;
+            boolean needTotals = searchData.getToCalculateTotal() != null && !searchData.getToCalculateTotal().isEmpty();
+
             if (spec != null) {
                 result = repository.findAll(spec, pageable);
-            } else {
-                if(searchData.isFilterTenant()){
-                    result = repository.findAllByTenantIdAndIsDeletedFalse(TenantContext.getCurrentTenant(),pageable);
-                }else
-                     result = repository.findAllByIsDeletedFalse(pageable);
-            }
-            List<OUTDTO> dtos = result.getContent().stream().map(
-                    element -> modelMapper.map(element, outDTOClass)
-            ).toList();
 
-            SearchResponse<E, OUTDTO> response = new SearchResponse<>(
-                    result.getTotalElements(),
-                    dtos,
-                    result.getTotalPages(),
-                    result.getNumber() + 1
-            );
+                if (needTotals) {
+                    // ✅ size must be >= 1
+                    int pgbSize = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, result.getTotalElements()));
+                    Pageable pgb = PageRequest.of(0, pgbSize, direction, sort);
+                    totalPagesResult = repository.findAll(spec, pgb);
+                } else {
+                    totalPagesResult = null;
+                }
+            } else {
+                if (searchData.isFilterTenant()) {
+                    result = repository.findAllByTenantIdAndIsDeletedFalse(TenantContext.getCurrentTenant(), pageable);
+                    if (needTotals) {
+                        int pgbSize = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, result.getTotalElements()));
+                        Pageable pgb = PageRequest.of(0, pgbSize, direction, sort);
+                        totalPagesResult = repository.findAllByTenantIdAndIsDeletedFalse(TenantContext.getCurrentTenant(), pgb);
+                    } else {
+                        totalPagesResult = null;
+                    }
+                } else {
+                    result = repository.findAllByIsDeletedFalse(pageable);
+                    if (needTotals) {
+                        int pgbSize = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, result.getTotalElements()));
+                        Pageable pgb = PageRequest.of(0, pgbSize, direction, sort);
+                        totalPagesResult = repository.findAllByIsDeletedFalse(pgb);
+                    } else {
+                        totalPagesResult = null;
+                    }
+                }
+            }
+
+            List<OUTDTO> dtos = result.getContent().stream().map(element -> modelMapper.map(element, outDTOClass)).toList();
+
+            Map<String, Double> totals = new HashMap<>();
+            if (needTotals && totalPagesResult != null) {
+                searchData.getToCalculateTotal().forEach(field -> {
+                    Double total = totalPagesResult.getContent().stream().mapToDouble(item -> {
+                        try {
+                            return toDouble(getNestedFieldValue(item, field));
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).sum();
+                    totals.put(field, total);
+                });
+            }
+
+            SearchResponse<E, OUTDTO> response = new SearchResponse<>(result.getTotalElements(), dtos, result.getTotalPages(), result.getNumber() + 1, totals);
 
             OSMLogger.logMethodExit(this.getClass(), "search", "Found " + dtos.size() + " entities out of " + result.getTotalElements());
             OSMLogger.logPerformance(this.getClass(), "search", startTime, System.currentTimeMillis());
@@ -437,12 +475,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             return response;
         } catch (Exception e) {
             OSMLogger.logException(this.getClass(), "Error during search operation", e);
-            return new SearchResponse<>(
-                    0,
-                    null,
-                    0,
-                    0
-            );
+            return new SearchResponse<>(0, null, 0, 0, null);
         }
     }
 
@@ -494,10 +527,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         try {
             this.currentExportDetails = exportDetails; // Store for dynamic field processing
 
-            if(exportDetails.getSearchData().isFilterTenant()) {
+            if (exportDetails.getSearchData().isFilterTenant()) {
                 SearchDetails details = new SearchDetails();
                 details.setEqualValue(TenantContext.getCurrentTenant());
-                if(exportDetails.getSearchData().getSearchData() != null) {
+                if (exportDetails.getSearchData().getSearchData() != null) {
                     exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
                 }
             }
@@ -527,8 +560,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 
             OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
-                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
+            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED", "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
 
             return result;
         } catch (Exception e) {
@@ -538,6 +570,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             this.currentExportDetails = null; // Clear after use
         }
     }
+
     /**
      * Create a single PDF document
      *
@@ -580,15 +613,13 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      */
     private byte[] createMultiplePdfs(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "createMultiplePdfs",
-                "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
+        OSMLogger.logMethodEntry(this.getClass(), "createMultiplePdfs", "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
 
         try {
             ByteArrayOutputStream zipOutput = new ByteArrayOutputStream();
             int totalPages = (int) Math.ceil((double) totalRecords / MAX_RECORDS_PER_DOCUMENT);
 
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_PDF_START",
-                    "Creating " + totalPages + " PDF files for " + totalRecords + " records");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_PDF_START", "Creating " + totalPages + " PDF files for " + totalRecords + " records");
 
             try (ZipOutputStream zipStream = new ZipOutputStream(zipOutput)) {
                 for (int pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -602,8 +633,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     SearchResponse<E, OUTDTO> response = search(searchData);
                     List<OUTDTO> data = response.getData();
 
-                    OSMLogger.logDataAccess(this.getClass(), "PDF_PAGE_DATA_RETRIEVED",
-                            entityClass.getSimpleName());
+                    OSMLogger.logDataAccess(this.getClass(), "PDF_PAGE_DATA_RETRIEVED", entityClass.getSimpleName());
 
                     // Generate PDF for current page
                     byte[] pdfData = generatePdf(data, pageNum + 1, totalPages, fieldsToExport, fileName);
@@ -615,16 +645,14 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     zipStream.closeEntry();
 
                     OSMLogger.logPerformance(this.getClass(), "PDF_PAGE_GENERATION", pageStartTime, System.currentTimeMillis());
-                    OSMLogger.logBusinessEvent(this.getClass(), "PDF_PAGE_COMPLETED",
-                            "Completed PDF page " + (pageNum + 1) + " of " + totalPages);
+                    OSMLogger.logBusinessEvent(this.getClass(), "PDF_PAGE_COMPLETED", "Completed PDF page " + (pageNum + 1) + " of " + totalPages);
                 }
             }
 
             byte[] result = zipOutput.toByteArray();
             OSMLogger.logMethodExit(this.getClass(), "createMultiplePdfs", "Generated ZIP with " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "createMultiplePdfs", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_PDF_COMPLETED",
-                    "Successfully created " + totalPages + " PDF files in ZIP archive");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_PDF_COMPLETED", "Successfully created " + totalPages + " PDF files in ZIP archive");
 
             return result;
 
@@ -643,11 +671,9 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      * @param fieldsToExport fields to include in export
      * @return PDF content as byte array
      */
-    private byte[]
-    generatePdf(List<OUTDTO> data, int partNumber, int totalParts, List<FieldDetails> fieldsToExport, String fileName) {
+    private byte[] generatePdf(List<OUTDTO> data, int partNumber, int totalParts, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "generatePdf",
-                "dataSize: " + data.size() + ", partNumber: " + partNumber + ", totalParts: " + totalParts + ", fields: " + fieldsToExport.size());
+        OSMLogger.logMethodEntry(this.getClass(), "generatePdf", "dataSize: " + data.size() + ", partNumber: " + partNumber + ", totalParts: " + totalParts + ", fields: " + fieldsToExport.size());
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -689,7 +715,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             Font dataFont = new Font(Font.FontFamily.HELVETICA, 8);
             for (OUTDTO entity : data) {
                 for (FieldDetails field : fieldsToExport) {
-                    String value = getFieldValue(entity, field );
+                    String value = getFieldValue(entity, field);
                     PdfPCell cell = new PdfPCell(new Phrase(value, dataFont));
                     table.addCell(cell);
                 }
@@ -701,8 +727,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             byte[] result = outputStream.toByteArray();
             OSMLogger.logMethodExit(this.getClass(), "generatePdf", "Generated " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "generatePdf", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
-                    "Generated PDF with " + data.size() + " records, " + fieldsToExport.size() + " fields");
+            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED", "Generated PDF with " + data.size() + " records, " + fieldsToExport.size() + " fields");
 
             return result;
         } catch (DocumentException e) {
@@ -762,10 +787,10 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
         try {
             this.currentExportDetails = exportDetails; // Store for dynamic field processing
 
-            if(exportDetails.getSearchData().isFilterTenant()) {
+            if (exportDetails.getSearchData().isFilterTenant()) {
                 SearchDetails details = new SearchDetails();
                 details.setEqualValue(TenantContext.getCurrentTenant());
-                if(exportDetails.getSearchData().getSearchData() != null) {
+                if (exportDetails.getSearchData().getSearchData() != null) {
                     exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
                 }
             }
@@ -795,8 +820,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 
             OSMLogger.logMethodExit(this.getClass(), "exportToCsv", "Generated " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "exportToCsv", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "CSV_GENERATED",
-                    "CSV generated for " + totalRecords + " records (" + result.length + " bytes)");
+            OSMLogger.logBusinessEvent(this.getClass(), "CSV_GENERATED", "CSV generated for " + totalRecords + " records (" + result.length + " bytes)");
 
             return result;
         } catch (Exception e) {
@@ -806,6 +830,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             this.currentExportDetails = null; // Clear after use
         }
     }
+
     /**
      * Create a single CSV document
      *
@@ -848,15 +873,13 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      */
     private byte[] createMultipleCsvs(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "createMultipleCsvs",
-                "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
+        OSMLogger.logMethodEntry(this.getClass(), "createMultipleCsvs", "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
 
         try {
             ByteArrayOutputStream zipOutput = new ByteArrayOutputStream();
             int totalPages = (int) Math.ceil((double) totalRecords / MAX_RECORDS_PER_DOCUMENT);
 
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_CSV_START",
-                    "Creating " + totalPages + " CSV files for " + totalRecords + " records");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_CSV_START", "Creating " + totalPages + " CSV files for " + totalRecords + " records");
 
             try (ZipOutputStream zipStream = new ZipOutputStream(zipOutput)) {
                 for (int pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -870,8 +893,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     SearchResponse<E, OUTDTO> response = search(searchData);
                     List<OUTDTO> data = response.getData();
 
-                    OSMLogger.logDataAccess(this.getClass(), "CSV_PAGE_DATA_RETRIEVED",
-                            entityClass.getSimpleName());
+                    OSMLogger.logDataAccess(this.getClass(), "CSV_PAGE_DATA_RETRIEVED", entityClass.getSimpleName());
 
                     // Generate CSV for current page
                     byte[] csvData = generateCsv(data, fieldsToExport);
@@ -884,16 +906,14 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
                     zipStream.closeEntry();
 
                     OSMLogger.logPerformance(this.getClass(), "CSV_PAGE_GENERATION", pageStartTime, System.currentTimeMillis());
-                    OSMLogger.logBusinessEvent(this.getClass(), "CSV_PAGE_COMPLETED",
-                            "Completed CSV page " + (pageNum + 1) + " of " + totalPages);
+                    OSMLogger.logBusinessEvent(this.getClass(), "CSV_PAGE_COMPLETED", "Completed CSV page " + (pageNum + 1) + " of " + totalPages);
                 }
             }
 
             byte[] result = zipOutput.toByteArray();
             OSMLogger.logMethodExit(this.getClass(), "createMultipleCsvs", "Generated ZIP with " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "createMultipleCsvs", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_CSV_COMPLETED",
-                    "Successfully created " + totalPages + " CSV files in ZIP archive");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_CSV_COMPLETED", "Successfully created " + totalPages + " CSV files in ZIP archive");
 
             return result;
 
@@ -912,8 +932,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
      */
     private byte[] generateCsv(List<OUTDTO> data, List<FieldDetails> fieldsToExport) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "generateCsv",
-                "dataSize: " + data.size() + ", fields: " + fieldsToExport.size());
+        OSMLogger.logMethodEntry(this.getClass(), "generateCsv", "dataSize: " + data.size() + ", fields: " + fieldsToExport.size());
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -955,8 +974,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 
             OSMLogger.logMethodExit(this.getClass(), "generateCsv", "Generated " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "generateCsv", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "CSV_GENERATED",
-                    "Generated CSV with " + data.size() + " records, " + fieldsToExport.size() + " fields");
+            OSMLogger.logBusinessEvent(this.getClass(), "CSV_GENERATED", "Generated CSV with " + data.size() + " records, " + fieldsToExport.size() + " fields");
 
             return result;
 
@@ -965,7 +983,6 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
             throw new RuntimeException("Failed to create CSV", e);
         }
     }
-
 
 
     /**
@@ -1046,6 +1063,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 //            return "";
 //        }
 //    }
+
     /**
      * Helper method to get a field from a class or its superclasses
      */
@@ -1065,7 +1083,7 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
     }
 
 
-//    public byte[] exportToExcel(ExportDetails exportDetails) {
+    //    public byte[] exportToExcel(ExportDetails exportDetails) {
 //        long startTime = System.currentTimeMillis();
 //        OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
 //
@@ -1105,66 +1123,57 @@ public abstract class  BaseServiceImpl<E extends BaseEntity, INDTO extends BaseD
 //            throw e;
 //        }
 //    }
-public byte[] exportToExcel(ExportDetails exportDetails) {
-    long startTime = System.currentTimeMillis();
-    OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
+    public byte[] exportToExcel(ExportDetails exportDetails) {
+        long startTime = System.currentTimeMillis();
+        OSMLogger.logMethodEntry(this.getClass(), "exportToExcel", exportDetails);
 
-    try {
-        this.currentExportDetails = exportDetails; // Store for dynamic field processing
+        try {
+            this.currentExportDetails = exportDetails; // Store for dynamic field processing
 
-        if(exportDetails.getSearchData().isFilterTenant()) {
-            SearchDetails details = new SearchDetails();
-            details.setEqualValue(TenantContext.getCurrentTenant());
-            if(exportDetails.getSearchData().getSearchData() != null) {
-                exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
+            if (exportDetails.getSearchData().isFilterTenant()) {
+                SearchDetails details = new SearchDetails();
+                details.setEqualValue(TenantContext.getCurrentTenant());
+                if (exportDetails.getSearchData().getSearchData() != null) {
+                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId", details);
+                }
             }
+
+            // Get total count to determine if pagination is needed
+            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+            SearchResponse<E, OUTDTO> countResponse = search(countData);
+            long totalRecords = countResponse.getTotal();
+
+            // Get sample data to process dynamic columns
+            SearchData sampleData = cloneSearchDataForCount(exportDetails.getSearchData());
+            sampleData.setSize(Math.min(100, (int) totalRecords)); // Sample first 100 records
+            SearchResponse<E, OUTDTO> sampleResponse = search(sampleData);
+
+            // Process collection fields and generate complete field list
+            List<FieldDetails> allFields = processCollectionFields(exportDetails, sampleResponse.getData());
+            exportDetails.setFieldDetails(allFields);
+
+            byte[] result;
+            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+                result = createMultipleExcelFiles(exportDetails.getSearchData(), totalRecords, allFields, exportDetails.getFileName());
+                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple Excel files for {} records", totalRecords);
+            } else {
+                result = createSingleExcelFile(exportDetails.getSearchData(), allFields, exportDetails.getFileName());
+                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single Excel file for {} records", totalRecords);
+            }
+
+            OSMLogger.logMethodExit(this.getClass(), "exportToExcel", "Generated " + result.length + " bytes");
+            OSMLogger.logPerformance(this.getClass(), "exportToExcel", startTime, System.currentTimeMillis());
+            OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED", "Excel file generated for " + totalRecords + " records (" + result.length + " bytes)");
+
+            return result;
+        } catch (Exception e) {
+            OSMLogger.logException(this.getClass(), "Error generating Excel export", e);
+            throw e;
+        } finally {
+            this.currentExportDetails = null; // Clear after use
         }
-
-        // Get total count to determine if pagination is needed
-        SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-        SearchResponse<E, OUTDTO> countResponse = search(countData);
-        long totalRecords = countResponse.getTotal();
-
-        // Get sample data to process dynamic columns
-        SearchData sampleData = cloneSearchDataForCount(exportDetails.getSearchData());
-        sampleData.setSize(Math.min(100, (int) totalRecords)); // Sample first 100 records
-        SearchResponse<E, OUTDTO> sampleResponse = search(sampleData);
-
-        // Process collection fields and generate complete field list
-        List<FieldDetails> allFields = processCollectionFields(exportDetails, sampleResponse.getData());
-        exportDetails.setFieldDetails(allFields);
-
-        byte[] result;
-        if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-            result = createMultipleExcelFiles(
-                    exportDetails.getSearchData(),
-                    totalRecords,
-                    allFields,
-                    exportDetails.getFileName()
-            );
-            OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple Excel files for {} records", totalRecords);
-        } else {
-            result = createSingleExcelFile(
-                    exportDetails.getSearchData(),
-                    allFields,
-                    exportDetails.getFileName()
-            );
-            OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single Excel file for {} records", totalRecords);
-        }
-
-        OSMLogger.logMethodExit(this.getClass(), "exportToExcel", "Generated " + result.length + " bytes");
-        OSMLogger.logPerformance(this.getClass(), "exportToExcel", startTime, System.currentTimeMillis());
-        OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED",
-                "Excel file generated for " + totalRecords + " records (" + result.length + " bytes)");
-
-        return result;
-    } catch (Exception e) {
-        OSMLogger.logException(this.getClass(), "Error generating Excel export", e);
-        throw e;
-    } finally {
-        this.currentExportDetails = null; // Clear after use
     }
-}
+
     private byte[] createSingleExcelFile(SearchData searchData, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "createSingleExcelFile", "fileName: " + fileName + ", fields: " + fieldsToExport.size());
@@ -1192,19 +1201,16 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
         }
     }
 
-    private byte[] createMultipleExcelFiles(SearchData searchData, long totalRecords,
-                                            List<FieldDetails> fieldsToExport, String fileName) {
+    private byte[] createMultipleExcelFiles(SearchData searchData, long totalRecords, List<FieldDetails> fieldsToExport, String fileName) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "createMultipleExcelFiles",
-                "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
+        OSMLogger.logMethodEntry(this.getClass(), "createMultipleExcelFiles", "totalRecords: " + totalRecords + ", fields: " + fieldsToExport.size() + ", fileName: " + fileName);
 
         try {
             ByteArrayOutputStream zipOutput = new ByteArrayOutputStream();
             int totalPages = (int) Math.ceil((double) totalRecords / MAX_RECORDS_PER_DOCUMENT);
 
             OSMLogger.log(this.getClass(), OSMLogger.LogLevel.DEBUG, "Creating {} Excel files for {} total records", totalPages, totalRecords);
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_EXCEL_START",
-                    "Creating " + totalPages + " Excel files for " + totalRecords + " records");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_EXCEL_START", "Creating " + totalPages + " Excel files for " + totalRecords + " records");
 
             try (ZipOutputStream zipStream = new ZipOutputStream(zipOutput)) {
                 for (int pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -1219,8 +1225,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
                     List<OUTDTO> data = response.getData();
 
                     OSMLogger.log(this.getClass(), OSMLogger.LogLevel.DEBUG, "Processing page {} with {} records", pageNum + 1, data.size());
-                    OSMLogger.logDataAccess(this.getClass(), "EXCEL_PAGE_DATA_RETRIEVED",
-                            entityClass.getSimpleName());
+                    OSMLogger.logDataAccess(this.getClass(), "EXCEL_PAGE_DATA_RETRIEVED", entityClass.getSimpleName());
 
                     // Generate Excel for current page
                     String safeFileName = (fileName != null && !fileName.isEmpty()) ? fileName : "file";
@@ -1234,16 +1239,14 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
                     zipStream.closeEntry();
 
                     OSMLogger.logPerformance(this.getClass(), "EXCEL_PAGE_GENERATION", pageStartTime, System.currentTimeMillis());
-                    OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_PAGE_COMPLETED",
-                            "Completed Excel page " + (pageNum + 1) + " of " + totalPages);
+                    OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_PAGE_COMPLETED", "Completed Excel page " + (pageNum + 1) + " of " + totalPages);
                 }
             }
 
             byte[] result = zipOutput.toByteArray();
             OSMLogger.logMethodExit(this.getClass(), "createMultipleExcelFiles", "Generated ZIP with " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "createMultipleExcelFiles", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_EXCEL_COMPLETED",
-                    "Successfully created " + totalPages + " Excel files in ZIP archive");
+            OSMLogger.logBusinessEvent(this.getClass(), "MULTIPLE_EXCEL_COMPLETED", "Successfully created " + totalPages + " Excel files in ZIP archive");
 
             return result;
 
@@ -1255,11 +1258,9 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
     private byte[] generateExcelFile(List<OUTDTO> data, List<FieldDetails> fieldsToExport, String sheetName) {
         long startTime = System.currentTimeMillis();
-        OSMLogger.logMethodEntry(this.getClass(), "generateExcelFile",
-                "dataSize: " + data.size() + ", fields: " + fieldsToExport.size() + ", sheetName: " + sheetName);
+        OSMLogger.logMethodEntry(this.getClass(), "generateExcelFile", "dataSize: " + data.size() + ", fields: " + fieldsToExport.size() + ", sheetName: " + sheetName);
 
-        try (XSSFWorkbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             // Validate input
             if (data == null) {
@@ -1323,7 +1324,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
                 for (int colNum = 0; colNum < fieldsToExport.size(); colNum++) {
                     XSSFCell cell = row.createCell(colNum);
-                    String value = getFieldValue(entity, fieldsToExport.get(colNum) );
+                    String value = getFieldValue(entity, fieldsToExport.get(colNum));
                     cell.setCellValue(value);
                     cell.setCellStyle(rowStyle);
                 }
@@ -1347,8 +1348,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
             OSMLogger.logMethodExit(this.getClass(), "generateExcelFile", "Generated " + result.length + " bytes");
             OSMLogger.logPerformance(this.getClass(), "generateExcelFile", startTime, System.currentTimeMillis());
-            OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED",
-                    "Generated Excel file with " + data.size() + " records, " + fieldsToExport.size() + " fields");
+            OSMLogger.logBusinessEvent(this.getClass(), "EXCEL_GENERATED", "Generated Excel file with " + data.size() + " records, " + fieldsToExport.size() + " fields");
 
             return result;
 
@@ -1372,9 +1372,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
             Set<String> columnNames = extractColumnNamesFromCollection(sampleData, collectionField);
 
             for (String columnName : columnNames) {
-                String prefixedName = collectionField.getColumnPrefix() != null
-                        ? collectionField.getColumnPrefix() + columnName
-                        : columnName;
+                String prefixedName = collectionField.getColumnPrefix() != null ? collectionField.getColumnPrefix() + columnName : columnName;
 
                 if (!dynamicColumns.contains(prefixedName)) {
                     FieldDetails dynamicField = new FieldDetails();
@@ -1391,6 +1389,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
         return allFields;
     }
+
     private Set<String> extractColumnNamesFromCollection(List<OUTDTO> data, CollectionFieldDetails collectionField) {
         Set<String> columnNames = new HashSet<>();
 
@@ -1412,6 +1411,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
         return columnNames;
     }
+
     private Object getNestedFieldValue(Object entity, String fieldPath) throws IllegalAccessException {
         if (entity == null || fieldPath == null || fieldPath.isEmpty()) {
             return null;
@@ -1441,6 +1441,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
 
         return currentObject;
     }
+
     private String getNestedFieldValueAsString(Object entity, String fieldPath) {
         try {
             Object value = getNestedFieldValue(entity, fieldPath);
@@ -1449,6 +1450,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
             return "";
         }
     }
+
     private String getDynamicCollectionFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
         try {
             // Find the collection field configuration
@@ -1483,6 +1485,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
             return "";
         }
     }
+
     protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
         if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
             return "";
@@ -1519,10 +1522,7 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
             }
 
             if (currentObject != null) {
-                if (fieldDetails.isEnumValue() &&
-                        fieldDetails.getEnumValues() != null &&
-                        !fieldDetails.getEnumValues().isEmpty() &&
-                        fieldDetails.getEnumValues().get(currentObject.toString()) != null) {
+                if (fieldDetails.isEnumValue() && fieldDetails.getEnumValues() != null && !fieldDetails.getEnumValues().isEmpty() && fieldDetails.getEnumValues().get(currentObject.toString()) != null) {
                     return fieldDetails.getEnumValues().get(currentObject.toString());
                 }
                 return formatFieldValue(currentObject);
@@ -1533,15 +1533,14 @@ public byte[] exportToExcel(ExportDetails exportDetails) {
             return "";
         }
     }
+
     private CollectionFieldDetails findCollectionConfig(String collectionPath) {
         if (currentExportDetails != null && currentExportDetails.getCollectionFields() != null) {
-            return currentExportDetails.getCollectionFields().stream()
-                    .filter(config -> collectionPath.equals(config.getCollectionPath()))
-                    .findFirst()
-                    .orElse(null);
+            return currentExportDetails.getCollectionFields().stream().filter(config -> collectionPath.equals(config.getCollectionPath())).findFirst().orElse(null);
         }
         return null;
     }
+
     private String formatFieldValue(Object value) {
         return switch (value) {
             case LocalDate localDate -> localDate.format(DATE_TIME_FORMATTER);
