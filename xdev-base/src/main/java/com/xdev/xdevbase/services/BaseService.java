@@ -6,6 +6,8 @@ import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.Action;
 import com.xdev.xdevbase.models.ExportDetails;
 import com.xdev.xdevbase.models.SearchData;
+import com.xdev.xdevbase.qr.model.QrCodeInfo;
+import com.xdev.xdevbase.qr.model.QrResolveResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.history.Revision;
 import org.springframework.data.history.Revisions;
@@ -39,6 +41,8 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
     Optional<Revision<Integer, E>> findLastRevisionById(UUID id);
 
+    QrResolveResponse resolve(String publicCode);
+
     void resolveEntityRelations(E entity);
 
     Revisions<Integer, E> findRevisionsById(UUID id);
@@ -56,4 +60,11 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
         actions.add(Action.READ);
         return actions;
     }
+    default QrCodeInfo generateQrInfo(UUID entityId) {
+        return generateQrInfo(null, entityId);
+    }
+
+    QrCodeInfo generateQrInfo(String entityType, UUID entityId);
+
+    byte[] generateQrImage(String publicCode);
 }
