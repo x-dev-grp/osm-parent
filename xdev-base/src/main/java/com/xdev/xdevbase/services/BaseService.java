@@ -41,7 +41,6 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
     Optional<Revision<Integer, E>> findLastRevisionById(UUID id);
 
-    QrResolveResponse resolve(String publicCode);
 
     void resolveEntityRelations(E entity);
 
@@ -73,7 +72,7 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
     byte[] generateQrImage(String publicCode);
 
-    //------QRCode----//
+    QrResolveResponse resolve(String publicCode);
+
+
 }
-
-
