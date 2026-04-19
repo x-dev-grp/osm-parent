@@ -513,9 +513,6 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
         // Check for ZIP file signature
         return content[0] == 0x50 && content[1] == 0x4B && content[2] == 0x03 && content[3] == 0x05;
     }
-
-
-    //----------------QRCode-----------------//
     @Override
     public ResponseEntity<QrCodeInfo> genQr(String entityType, UUID entityId) {
         long startTime = System.currentTimeMillis();
