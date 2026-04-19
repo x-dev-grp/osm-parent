@@ -11,6 +11,7 @@ import com.xdev.xdevbase.models.Action;
 import com.xdev.xdevbase.models.ExportDetails;
 import com.xdev.xdevbase.models.SearchData;
 import com.xdev.xdevbase.qr.model.QrCodeInfo;
+import com.xdev.xdevbase.qr.model.QrEntityResolver;
 import com.xdev.xdevbase.qr.model.QrResolveResponse;
 import com.xdev.xdevbase.services.BaseService;
 import com.xdev.xdevbase.utils.ExceptionHandler;
@@ -126,6 +127,13 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
         } catch (Exception e) {
             return ExceptionHandler.handleSingleException(this.getClass(), "create", e);
         }
+    }
+    @Override
+    public ResponseEntity<byte[]> getQrImage(@PathVariable String publicCode) {
+        byte[] image = baseService.generateQrImage(publicCode);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(image);
     }
     @Override
     public ResponseEntity<ApiSingleResponse<E, OUTDTO>> update(
@@ -510,10 +518,14 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
     //----------------QRCode-----------------//
     @Override
     public ResponseEntity<QrCodeInfo> genQr(String entityType, UUID entityId) {
+        long startTime = System.currentTimeMillis();
+        OSMLogger.logMethodEntry(this.getClass(), "genQr", entityType, entityId);
 
         try {
             QrCodeInfo qrInfo = baseService.generateQrInfo(entityType, entityId);
-             return ResponseEntity.ok(qrInfo);
+            OSMLogger.logMethodExit(this.getClass(), "genQr", qrInfo);
+            OSMLogger.logPerformance(this.getClass(), "genQr", startTime, System.currentTimeMillis());
+            return ResponseEntity.ok(qrInfo);
         } catch (Exception e) {
             OSMLogger.logException(this.getClass(), "Error generating QR", e);
             throw e;
