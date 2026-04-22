@@ -76,3 +76,5 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
 
 }
+
+
