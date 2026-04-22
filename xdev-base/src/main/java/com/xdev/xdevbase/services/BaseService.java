@@ -60,6 +60,11 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
         actions.add(Action.READ);
         return actions;
     }
+
+
+
+
+    //------QRCode----//
     default QrCodeInfo generateQrInfo(UUID entityId) {
         return generateQrInfo(null, entityId);
     }
@@ -67,4 +72,8 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
     QrCodeInfo generateQrInfo(String entityType, UUID entityId);
 
     byte[] generateQrImage(String publicCode);
+
+    //------QRCode----//
 }
+
+

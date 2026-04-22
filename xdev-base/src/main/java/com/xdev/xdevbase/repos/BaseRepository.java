@@ -30,7 +30,11 @@ public interface BaseRepository<E extends BaseEntity> extends JpaRepository<E, U
 
     Page<E> findAllByIsDeletedFalse(Pageable pageable);
 
+    //------QRCode----------//
     Optional<E> findByQrHex(String qrHex);
-
     boolean existsByQrHex(String qrHex);
+
+    Optional<E> findByQrHexAndTenantIdAndIsDeletedFalse(String qrHex, UUID tenantId);
+
+    //------QRCode----------//
 }
