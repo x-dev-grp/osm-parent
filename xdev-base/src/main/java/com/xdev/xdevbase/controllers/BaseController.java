@@ -46,8 +46,7 @@ public interface BaseController<E extends BaseEntity, INDTO extends BaseDto<E>, 
 
     @DeleteMapping("/remove/{id}")
     ResponseEntity<?> remove(@PathVariable UUID id);
-    @GetMapping("/qr/image/{publicCode}")
-    ResponseEntity<byte[]> getQrImage(@PathVariable String publicCode);
+
     @DeleteMapping("/delete/{id}")
     ResponseEntity<?> delete(@PathVariable UUID id);
 
@@ -68,10 +67,16 @@ public interface BaseController<E extends BaseEntity, INDTO extends BaseDto<E>, 
 
     @PostMapping("/advanced/search")
     ResponseEntity<SearchResponse<E, OUTDTO>> advancedSearch(@RequestBody SearchData searchData, Authentication authentication);
+
+
+
+
+    //-------------Qr code-------------//
     @GetMapping(value = "/qr/{entityType}/{entityId}", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<QrCodeInfo> genQr(@PathVariable String entityType, @PathVariable UUID entityId);
 
     @GetMapping("/resolve/{publicCode}")
     ResponseEntity<?> resolve(@PathVariable String publicCode);
+    //-------------Qr code-------------//
 }
 

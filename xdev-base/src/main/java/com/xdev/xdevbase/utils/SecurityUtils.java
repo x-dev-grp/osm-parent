@@ -12,6 +12,7 @@ public final class SecurityUtils {
         // Utility class
     }
 
+    //lit le jeton JWT de l’utilisateur authentifié
     @SuppressWarnings("unchecked")
     public static Optional<Map<String, Object>> getCurrentOsmUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

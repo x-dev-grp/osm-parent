@@ -28,6 +28,7 @@ public class StorageUnitDto extends BaseDto {
     private SupplierDto supplier;
     private QualityGrades qualityGrade;
     private String lotNumber;
+    private Boolean filteredOil;
 
 
     public StorageUnitDto() {
@@ -57,7 +58,6 @@ public class StorageUnitDto extends BaseDto {
         this.supplier = supplier;
     }
 
-    // Optional helper for client-side rendering
     public double getFillPercentage() {
         return maxCapacity != null && maxCapacity > 0 ? (currentVolume / maxCapacity) * 100.0 : 0.0;
     }
@@ -170,6 +170,9 @@ public class StorageUnitDto extends BaseDto {
         return qualityGrade;
     }
 
+    public void setQualityGrade(QualityGrades qualityGrade) {
+        this.qualityGrade = qualityGrade;
+    }
 
     public String getLotNumber() {
         return lotNumber;
@@ -179,4 +182,11 @@ public class StorageUnitDto extends BaseDto {
         this.lotNumber = lotNumber;
     }
 
+    public Boolean getFilteredOil() {
+        return filteredOil;
+    }
+
+    public void setFilteredOil(Boolean filteredOil) {
+        this.filteredOil = filteredOil;
+    }
 }

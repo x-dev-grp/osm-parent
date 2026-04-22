@@ -19,12 +19,13 @@ import com.xdev.xdevbase.config.TenantContext;
 import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.*;
-import com.xdev.xdevbase.qr.Component.CodeGenerator;
+import com.xdev.xdevbase.qr.CodeGenerator;
 import com.xdev.xdevbase.qr.Component.QrConfig;
 import com.xdev.xdevbase.qr.model.QrCodeInfo;
 import com.xdev.xdevbase.qr.model.QrResolveResponse;
 import com.xdev.xdevbase.repos.BaseRepository;
 import com.xdev.xdevbase.services.BaseService;
+import com.xdev.xdevbase.services.GlobalCodeSearchContributor;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
 import com.xdev.xdevbase.utils.AuditHelper;
 import com.xdev.xdevbase.utils.OSMLogger;
@@ -56,13 +57,11 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @SuppressWarnings("unchecked")
-public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDto<E>, OUTDTO extends BaseDto<E>> implements BaseService<E, INDTO, OUTDTO> {
+public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDto<E>, OUTDTO extends BaseDto<E>> implements BaseService<E, INDTO, OUTDTO>, GlobalCodeSearchContributor {
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final DateTimeFormatter OFFSET_DATE_TIME_FORMATTER1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX");
@@ -71,7 +70,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     protected final BaseRepository<E> repository;
     protected final ModelMapper modelMapper;
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-    private final ConcurrentMap<Object, Object> lMap = new ConcurrentHashMap<>();
     protected Class<E> entityClass;
     protected Class<INDTO> inDTOClass;
     protected Class<OUTDTO> outDTOClass;
@@ -92,6 +90,11 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
 
     // Optional: keep a convenience constructor with all dependencies (for services that want to inject them explicitly)
+    protected BaseServiceImpl(BaseRepository<E> repository, CodeGenerator codeGenerator, ModelMapper modelMapper) {
+        this(repository, modelMapper);
+        this.codeGenerator = codeGenerator;
+    }
+
     protected BaseServiceImpl(BaseRepository<E> repository, CodeGenerator codeGenerator, QrConfig qrConfig, ModelMapper modelMapper) {
         this(repository, modelMapper);
         this.codeGenerator = codeGenerator;
@@ -104,11 +107,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         this.entityClass = (Class<E>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         this.inDTOClass = (Class<INDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
         this.outDTOClass = (Class<OUTDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[2];
-    }
-
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
-    @JsonIgnoreProperties("qrImageBase64")
-    private abstract static class BaseEntityQrMixin {
     }
 
     private static double toDouble(Object v) {
@@ -133,6 +131,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     public Class<OUTDTO> getOutDTOClass() {
         return this.outDTOClass;
     }
+
     @Transactional(readOnly = true)
     @Override
     public OUTDTO findById(UUID id) {
@@ -156,6 +155,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             throw e;
         }
     }
+
     @Transactional(readOnly = true)
     @Override
     public List<OUTDTO> findAll() {
@@ -175,6 +175,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             throw e;
         }
     }
+
     @Transactional(readOnly = true)
     @Override
     public Page<OUTDTO> findAll(int page, int size, String sort, String direction) {
@@ -1221,6 +1222,22 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
      * @param fieldDetails fieldDetails
      * @return field value as string
      */
+    private Field getFieldFromClass(Class<?> cls, String fieldName) {
+        Class<?> currentClass = cls;
+
+        while (currentClass != null) {
+            try {
+                return currentClass.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                // Field not found in current class, check the superclass
+                currentClass = currentClass.getSuperclass();
+            }
+        }
+
+        return null; // Field not found in class hierarchy
+    }
+
+
 //    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
 //        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
 //            return "";
@@ -1475,12 +1492,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             // Validate input
-            if (data == null) {
-                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.WARN, "No data provided for Excel export");
-                data = Collections.emptyList();
-            }
 
-            if (fieldsToExport == null || fieldsToExport.isEmpty()) {
+            if (fieldsToExport.isEmpty()) {
                 OSMLogger.log(this.getClass(), OSMLogger.LogLevel.WARN, "No fields specified for Excel export");
                 fieldsToExport = Collections.emptyList();
             }
@@ -1763,4 +1776,265 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             default -> value.toString();
         };
     }
+
+    protected String getQrUrlForPublicCode(String publicCode) {
+        if (publicCode == null || publicCode.isBlank()) {
+            return null;
+        }
+
+        requireQrSupport();
+        return buildQrUrl(getEntityType(), publicCode);
+    }
+
+    //------QRCode----------//
+    private String resolveQrEntityType(String entityType) {
+        try {
+            return getEntityType();
+        } catch (UnsupportedOperationException ex) {
+            if (entityType == null || entityType.isBlank()) {
+                throw ex;
+            }
+            return entityType.toUpperCase(Locale.ROOT);
+        }
+    }  //genere un QRCode pour chaque entite (code unique et imag)
+
+    @Transactional
+    public QrCodeInfo generateQrInfo(String entityType, UUID entityId) {
+        E entity = repository.findById(entityId).orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + entityId));
+        String publicCode = codeGenerator.generateUnique(repository::existsByQrHex);
+        String qrUrl = buildQrUrl(resolveQrEntityType(entityType), publicCode);
+        entity.setQrHex(publicCode);
+        byte[] imageBytes = generateQrImageBytesFromEntity(entity);
+        String imageBase64 = encodeBase64(imageBytes);
+        entity.setQrImageBase64(imageBase64);
+        repository.save(entity);
+        return new QrCodeInfo(publicCode, qrUrl, imageBase64);
+    }
+
+    private String buildQrUrl(String entityType, String publicCode) {
+        return qrConfig.getBaseUrl() + "/" + entityType.toUpperCase(Locale.ROOT) + "/" + publicCode;
+    }
+
+    //genere l'image a partir code public
+    @Transactional
+    public byte[] generateQrImage(String publicCode) {
+        E entity = repository.findByQrHex(publicCode)
+                .orElseThrow(() -> new EntityNotFoundException("Entity not found for code: " + publicCode));
+
+        byte[] imageBytes = generateQrImageBytesFromEntity(entity);
+        persistQrImageBase64(entity, imageBytes);
+        return imageBytes;
+    }
+
+    //chercher l'antite par id
+    public E getEntityById(UUID id) {
+        return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
+    }
+
+    //transforme une entite metier e n image QR
+    protected byte[] generateQrImageBytesFromEntity(E entity) {
+        try {
+            String json = getQrObjectMapper().writeValueAsString(entity);
+            return renderQrContent(json);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize QR payload", e);
+        }
+    }
+
+
+
+    //Genere  l’image à partir d’une entité déjà chargée.
+    @Transactional
+    public byte[] generateQrImageFromEntity(E entity) {
+        if (entity == null) {
+            throw new IllegalArgumentException("Entity cannot be null");
+        }
+
+        E entityToEncode = entity;
+        if (entity.getId() != null) {
+            entityToEncode = repository.findById(entity.getId()).orElse(entity);
+        }
+
+        byte[] imageBytes = generateQrImageBytesFromEntity(entityToEncode);
+        if (entityToEncode.getId() != null) {
+            persistQrImageBase64(entityToEncode, imageBytes);
+        }
+        return imageBytes;
+    }
+
+    @Override
+
+    public QrResolveResponse resolve(String publicCode) {
+        String normalizedCode = normalizeSearchCode(publicCode);
+        UUID tenantId = TenantContext.getCurrentTenant();
+        E entity = (tenantId == null
+                ? repository.findByQrHex(normalizedCode)
+                : repository.findByQrHexAndTenantIdAndIsDeletedFalse(normalizedCode, tenantId))
+                .orElseThrow(() -> new EntityNotFoundException("Entity not found for code: " + normalizedCode));
+
+        return buildResolveResponse(normalizedCode, entity);
+    }
+
+
+    //Recherche par code
+    @Override
+    public Optional<QrResolveResponse> searchByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            String normalizedCode = normalizeSearchCode(code);
+            UUID tenantId = TenantContext.getCurrentTenant();
+            Optional<E> entity = tenantId == null
+                    ? repository.findByQrHex(normalizedCode)
+                    : repository.findByQrHexAndTenantIdAndIsDeletedFalse(normalizedCode, tenantId);
+
+            if (entity.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(buildResolveResponse(normalizedCode, entity.get()));
+        } catch (UnsupportedOperationException ex) {
+            return Optional.empty();
+        } catch (Exception ex) {
+            OSMLogger.logException(this.getClass(), "Global code search contributor failed", ex);
+            return Optional.empty();
+        }
+    }
+
+    // Abstract methods to be implemented by each concrete service
+    protected String getEntityType() {
+        throw new UnsupportedOperationException("This service does not support QR resolution.");
+    }
+
+    protected String getLabel(E entity) {
+        throw new UnsupportedOperationException("This service does not support QR resolution.");
+    }
+
+    protected String getStatus(E entity) {
+        throw new UnsupportedOperationException("This service does not support QR resolution.");
+    }
+
+    protected String getMobileRoute() {
+        throw new UnsupportedOperationException("This service does not support QR resolution.");
+    }
+
+    protected String getWebRoute(E entity) {
+        return getMobileRoute();
+    }
+
+    // Optional: override to provide extra data
+    protected Object getData(E entity) {
+        return null;
+    }
+
+    private String normalizeSearchCode(String code) {
+        return code.trim().toUpperCase(Locale.ROOT);
+    }
+
+    protected QrResolveResponse buildResolveResponse(String publicCode, E entity) {
+        QrResolveResponse response = new QrResolveResponse();
+        response.setEntityType(getEntityType());
+        response.setPublicCode(publicCode);
+        response.setEntityId(entity.getId().toString());
+        response.setLabel(getLabel(entity));
+        response.setStatus(getStatus(entity));
+        response.setMobileRoute(getMobileRoute());
+        response.setWebRoute(getWebRoute(entity));
+        response.setData(getData(entity));
+        return response;
+    }
+
+
+
+
+
+
+    private byte[] renderQrContent(String content) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, 300, 300, hints);
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+            return baos.toByteArray();
+        } catch (WriterException | IOException e) {
+            throw new RuntimeException("Failed to generate QR image", e);
+        }
+    }
+
+    private ObjectMapper getQrObjectMapper() {
+        ObjectMapper mapper = objectMapper != null ? objectMapper.copy() : new ObjectMapper().findAndRegisterModules();
+        mapper.addMixIn(BaseEntity.class, BaseEntityQrMixin.class);
+        return mapper;
+    }
+
+    private void persistQrImageBase64(E entity, byte[] imageBytes) {
+        String imageBase64 = encodeBase64(imageBytes);
+        if (Objects.equals(entity.getQrImageBase64(), imageBase64)) {
+            return;
+        }
+
+        entity.setQrImageBase64(imageBase64);
+        repository.save(entity);
+    }
+
+
+    /**
+     * Override this method if a service needs a custom QR payload.
+     * By default we serialize the full entity graph once.
+     */
+    protected Object getQrPayload(E entity) {
+        return entity;
+    }
+
+
+    private void requireQrSupport() {
+        if (codeGenerator == null || qrConfig == null) {
+            throw new UnsupportedOperationException("QR support is not configured for this service.");
+        }
+    }
+
+
+    private byte[] renderQrPayload(Object payload) {
+        try {
+            String json = getQrObjectMapper().writeValueAsString(payload);
+            return renderQrContent(json, 300, 300);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize QR payload", e);
+        }
+    }
+
+    private byte[] renderQrContent(String content, int width, int height) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+            return baos.toByteArray();
+        } catch (WriterException | IOException e) {
+            throw new RuntimeException("Failed to generate QR image", e);
+        }
+    }
+
+    private QrCodeInfo persistQrInfo(E entity, String publicCode, String qrUrl, byte[] imageBytes) {
+        String imageBase64 = encodeBase64(imageBytes);
+        entity.setQrHex(publicCode);
+        entity.setQrImageBase64(imageBase64);
+        repository.save(entity);
+        return new QrCodeInfo(publicCode, qrUrl, imageBase64);
+    }
+
+    private String encodeBase64(byte[] imageBytes) {
+        return Base64.getEncoder().encodeToString(imageBytes);
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIgnoreProperties("qrImageBase64")
+    private abstract static class BaseEntityQrMixin {
+    }
+    //------QRCode----------//
 }

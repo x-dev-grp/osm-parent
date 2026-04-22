@@ -1,4 +1,4 @@
-package com.xdev.xdevbase.qr.Component;
+package com.xdev.xdevbase.qr;
 
 import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
