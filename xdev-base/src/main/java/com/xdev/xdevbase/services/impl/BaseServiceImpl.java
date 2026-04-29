@@ -692,47 +692,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         }
     }
 
-
-//    public byte[] exportToPdf(ExportDetails exportDetails) {
-//        long startTime = System.currentTimeMillis();
-//        OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
-//
-//        try {
-//            if(exportDetails.getSearchData().isFilterTenant()) {
-//                SearchDetails details = new SearchDetails();
-//                details.setEqualValue(TenantContext.getCurrentTenant());
-//                if(exportDetails.getSearchData().getSearchData() != null) {
-//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
-//                }
-//            }
-//            // Get total count first to determine if pagination is needed
-//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-//
-//            SearchResponse<E, OUTDTO> countResponse = search(countData);
-//            long totalRecords = countResponse.getTotal();
-//
-//            byte[] result;
-//            // If total records exceed maximum per document, create multiple PDFs
-//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-//                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
-//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
-//            } else {
-//                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
-//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
-//            }
-//
-//            OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
-//            OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
-//            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
-//                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
-//
-//            return result;
-//        } catch (Exception e) {
-//            OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
-//            throw e;
-//        }
-//    }
-
     public byte[] exportToPdf(ExportDetails exportDetails) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
@@ -783,6 +742,47 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             this.currentExportDetails = null; // Clear after use
         }
     }
+
+
+//    public byte[] exportToPdf(ExportDetails exportDetails) {
+//        long startTime = System.currentTimeMillis();
+//        OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
+//
+//        try {
+//            if(exportDetails.getSearchData().isFilterTenant()) {
+//                SearchDetails details = new SearchDetails();
+//                details.setEqualValue(TenantContext.getCurrentTenant());
+//                if(exportDetails.getSearchData().getSearchData() != null) {
+//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+//                }
+//            }
+//            // Get total count first to determine if pagination is needed
+//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+//
+//            SearchResponse<E, OUTDTO> countResponse = search(countData);
+//            long totalRecords = countResponse.getTotal();
+//
+//            byte[] result;
+//            // If total records exceed maximum per document, create multiple PDFs
+//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+//                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
+//            } else {
+//                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
+//            }
+//
+//            OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
+//            OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
+//            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
+//                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
+//
+//            return result;
+//        } catch (Exception e) {
+//            OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
+//            throw e;
+//        }
+//    }
 
     /**
      * Create a single PDF document
@@ -1218,8 +1218,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     /**
      * Get value of a field from an entity
      *
-     * @param entity    entity object
-     * @param fieldDetails fieldDetails
+     * @param cls    entity object
+     * @param fieldName fieldDetails
      * @return field value as string
      */
     private Field getFieldFromClass(Class<?> cls, String fieldName) {
@@ -1292,25 +1292,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 //            return "";
 //        }
 //    }
-
-    /**
-     * Helper method to get a field from a class or its superclasses
-     */
-    private Field getFieldFromClass(Class<?> cls, String fieldName) {
-        Class<?> currentClass = cls;
-
-        while (currentClass != null) {
-            try {
-                return currentClass.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException e) {
-                // Field not found in current class, check the superclass
-                currentClass = currentClass.getSuperclass();
-            }
-        }
-
-        return null; // Field not found in class hierarchy
-    }
-
 
     //    public byte[] exportToExcel(ExportDetails exportDetails) {
 //        long startTime = System.currentTimeMillis();
