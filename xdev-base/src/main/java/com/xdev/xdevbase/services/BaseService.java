@@ -64,9 +64,6 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
 
     //------QRCode----//
-    default QrCodeInfo generateQrInfo(UUID entityId) {
-        return generateQrInfo(null, entityId);
-    }
 
     QrCodeInfo generateQrInfo(String entityType, UUID entityId);
 

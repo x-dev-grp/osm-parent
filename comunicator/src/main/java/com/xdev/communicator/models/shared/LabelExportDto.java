@@ -37,6 +37,7 @@ public class LabelExportDto implements Serializable {
     private String payloadJson;
     private LocalDateTime finalizedAt;
     private String finalizedBy;
+    private String publicCode;
 
 
     public void setLabelId(UUID labelId) {
@@ -158,5 +159,13 @@ public class LabelExportDto implements Serializable {
 
     public void setFinalizedBy(String finalizedBy) {
         this.finalizedBy = finalizedBy;
+    }
+
+    public String getPublicCode() {
+        return publicCode;
+    }
+
+    public void setPublicCode(String publicCode) {
+        this.publicCode = publicCode;
     }
 }

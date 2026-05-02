@@ -38,6 +38,7 @@ public class LabelContentDto extends BaseDto {
     private String finalPayloadJson;
     private LocalDateTime finalizedAt;
     private String finalizedBy;
+    private String publicCode;
     private List<LabelSourceSnapshotDto> sourceSnapshots = new ArrayList<>();
     private List<LabelValidationIssueDto> validationIssues = new ArrayList<>();
 
@@ -206,6 +207,14 @@ public class LabelContentDto extends BaseDto {
 
     public void setFinalizedBy(String finalizedBy) {
         this.finalizedBy = finalizedBy;
+    }
+
+    public String getPublicCode() {
+        return publicCode;
+    }
+
+    public void setPublicCode(String publicCode) {
+        this.publicCode = publicCode;
     }
 
     public List<LabelSourceSnapshotDto> getSourceSnapshots() {

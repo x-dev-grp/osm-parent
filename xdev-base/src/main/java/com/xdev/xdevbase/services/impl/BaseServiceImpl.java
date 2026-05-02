@@ -20,6 +20,7 @@ import com.xdev.xdevbase.dtos.BaseDto;
 import com.xdev.xdevbase.entities.BaseEntity;
 import com.xdev.xdevbase.models.*;
 import com.xdev.xdevbase.qr.CodeGenerator;
+import com.xdev.xdevbase.qr.Component.QrConfig;
 import com.xdev.xdevbase.qr.model.QrCodeInfo;
 import com.xdev.xdevbase.qr.model.QrResolveResponse;
 import com.xdev.xdevbase.repos.BaseRepository;
@@ -79,7 +80,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     @Autowired(required = false)
     private CodeGenerator codeGenerator;
 
-
+    @Autowired(required = false)
+    private QrConfig qrConfig;
 
     @Autowired(required = false)
     private ObjectMapper objectMapper;
@@ -88,10 +90,16 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
 
     // Optional: keep a convenience constructor with all dependencies (for services that want to inject them explicitly)
-    protected BaseServiceImpl(BaseRepository<E> repository, CodeGenerator codeGenerator,  ModelMapper modelMapper) {
+    protected BaseServiceImpl(BaseRepository<E> repository, CodeGenerator codeGenerator, ModelMapper modelMapper) {
         this(repository, modelMapper);
         this.codeGenerator = codeGenerator;
-     }
+    }
+
+    protected BaseServiceImpl(BaseRepository<E> repository, CodeGenerator codeGenerator, QrConfig qrConfig, ModelMapper modelMapper) {
+        this(repository, modelMapper);
+        this.codeGenerator = codeGenerator;
+        this.qrConfig = qrConfig;
+    }
 
     protected BaseServiceImpl(BaseRepository<E> repository, ModelMapper modelMapper) {
         this.repository = repository;
@@ -99,11 +107,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         this.entityClass = (Class<E>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         this.inDTOClass = (Class<INDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
         this.outDTOClass = (Class<OUTDTO>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[2];
-    }
-
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
-    @JsonIgnoreProperties("qrImageBase64")
-    private abstract static class BaseEntityQrMixin {
     }
 
     private static double toDouble(Object v) {
@@ -128,6 +131,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     public Class<OUTDTO> getOutDTOClass() {
         return this.outDTOClass;
     }
+
     @Transactional(readOnly = true)
     @Override
     public OUTDTO findById(UUID id) {
@@ -151,6 +155,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             throw e;
         }
     }
+
     @Transactional(readOnly = true)
     @Override
     public List<OUTDTO> findAll() {
@@ -170,6 +175,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             throw e;
         }
     }
+
     @Transactional(readOnly = true)
     @Override
     public Page<OUTDTO> findAll(int page, int size, String sort, String direction) {
@@ -512,47 +518,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         }
     }
 
-
-//    public byte[] exportToPdf(ExportDetails exportDetails) {
-//        long startTime = System.currentTimeMillis();
-//        OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
-//
-//        try {
-//            if(exportDetails.getSearchData().isFilterTenant()) {
-//                SearchDetails details = new SearchDetails();
-//                details.setEqualValue(TenantContext.getCurrentTenant());
-//                if(exportDetails.getSearchData().getSearchData() != null) {
-//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
-//                }
-//            }
-//            // Get total count first to determine if pagination is needed
-//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
-//
-//            SearchResponse<E, OUTDTO> countResponse = search(countData);
-//            long totalRecords = countResponse.getTotal();
-//
-//            byte[] result;
-//            // If total records exceed maximum per document, create multiple PDFs
-//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
-//                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
-//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
-//            } else {
-//                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
-//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
-//            }
-//
-//            OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
-//            OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
-//            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
-//                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
-//
-//            return result;
-//        } catch (Exception e) {
-//            OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
-//            throw e;
-//        }
-//    }
-
     public byte[] exportToPdf(ExportDetails exportDetails) {
         long startTime = System.currentTimeMillis();
         OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
@@ -603,6 +568,47 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
             this.currentExportDetails = null; // Clear after use
         }
     }
+
+
+//    public byte[] exportToPdf(ExportDetails exportDetails) {
+//        long startTime = System.currentTimeMillis();
+//        OSMLogger.logMethodEntry(this.getClass(), "exportToPdf", exportDetails);
+//
+//        try {
+//            if(exportDetails.getSearchData().isFilterTenant()) {
+//                SearchDetails details = new SearchDetails();
+//                details.setEqualValue(TenantContext.getCurrentTenant());
+//                if(exportDetails.getSearchData().getSearchData() != null) {
+//                    exportDetails.getSearchData().getSearchData().getSearch().put("tenantId",details);
+//                }
+//            }
+//            // Get total count first to determine if pagination is needed
+//            SearchData countData = cloneSearchDataForCount(exportDetails.getSearchData());
+//
+//            SearchResponse<E, OUTDTO> countResponse = search(countData);
+//            long totalRecords = countResponse.getTotal();
+//
+//            byte[] result;
+//            // If total records exceed maximum per document, create multiple PDFs
+//            if (totalRecords > MAX_RECORDS_PER_DOCUMENT) {
+//                result = createMultiplePdfs(exportDetails.getSearchData(), totalRecords, exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created multiple PDFs for {} records", totalRecords);
+//            } else {
+//                result = createSinglePdf(exportDetails.getSearchData(), exportDetails.getFieldDetails(), exportDetails.getFileName());
+//                OSMLogger.log(this.getClass(), OSMLogger.LogLevel.INFO, "Created single PDF for {} records", totalRecords);
+//            }
+//
+//            OSMLogger.logMethodExit(this.getClass(), "exportToPdf", "Generated " + result.length + " bytes");
+//            OSMLogger.logPerformance(this.getClass(), "exportToPdf", startTime, System.currentTimeMillis());
+//            OSMLogger.logBusinessEvent(this.getClass(), "PDF_GENERATED",
+//                    "PDF generated for " + totalRecords + " records (" + result.length + " bytes)");
+//
+//            return result;
+//        } catch (Exception e) {
+//            OSMLogger.logException(this.getClass(), "Error generating PDF export", e);
+//            throw e;
+//        }
+//    }
 
     /**
      * Create a single PDF document
@@ -1038,10 +1044,26 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     /**
      * Get value of a field from an entity
      *
-     * @param entity    entity object
-     * @param fieldDetails fieldDetails
+     * @param cls    entity object
+     * @param fieldName fieldDetails
      * @return field value as string
      */
+    private Field getFieldFromClass(Class<?> cls, String fieldName) {
+        Class<?> currentClass = cls;
+
+        while (currentClass != null) {
+            try {
+                return currentClass.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                // Field not found in current class, check the superclass
+                currentClass = currentClass.getSuperclass();
+            }
+        }
+
+        return null; // Field not found in class hierarchy
+    }
+
+
 //    protected String getFieldValue(OUTDTO entity, FieldDetails fieldDetails) {
 //        if (entity == null || fieldDetails == null || fieldDetails.getName() == null || fieldDetails.getName().isEmpty()) {
 //            return "";
@@ -1096,25 +1118,6 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 //            return "";
 //        }
 //    }
-
-    /**
-     * Helper method to get a field from a class or its superclasses
-     */
-    private Field getFieldFromClass(Class<?> cls, String fieldName) {
-        Class<?> currentClass = cls;
-
-        while (currentClass != null) {
-            try {
-                return currentClass.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException e) {
-                // Field not found in current class, check the superclass
-                currentClass = currentClass.getSuperclass();
-            }
-        }
-
-        return null; // Field not found in class hierarchy
-    }
-
 
     //    public byte[] exportToExcel(ExportDetails exportDetails) {
 //        long startTime = System.currentTimeMillis();
@@ -1581,20 +1584,43 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         };
     }
 
+    protected String getQrUrlForPublicCode(String publicCode) {
+        if (publicCode == null || publicCode.isBlank()) {
+            return null;
+        }
+
+        requireQrSupport();
+        return buildQrUrl(getEntityType(), publicCode);
+    }
 
     //------QRCode----------//
-    //genere un QRCode pour chaque entite (code unique et imag)
+    private String resolveQrEntityType(String entityType) {
+        try {
+            return getEntityType();
+        } catch (UnsupportedOperationException ex) {
+            if (entityType == null || entityType.isBlank()) {
+                throw ex;
+            }
+            return entityType.toUpperCase(Locale.ROOT);
+        }
+    }  //genere un QRCode pour chaque entite (code unique et imag)
+
     @Transactional
     public QrCodeInfo generateQrInfo(String entityType, UUID entityId) {
         E entity = repository.findById(entityId).orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + entityId));
         String publicCode = codeGenerator.generateUnique(repository::existsByQrHex);
+        String qrUrl = buildQrUrl(resolveQrEntityType(entityType), publicCode);
         entity.setQrHex(publicCode);
         byte[] imageBytes = generateQrImageBytesFromEntity(entity);
         String imageBase64 = encodeBase64(imageBytes);
         entity.setQrImageBase64(imageBase64);
         repository.save(entity);
-        return new QrCodeInfo(publicCode, imageBase64);
-     }
+        return new QrCodeInfo(publicCode, qrUrl, imageBase64);
+    }
+
+    private String buildQrUrl(String entityType, String publicCode) {
+        return qrConfig.getBaseUrl() + "/" + entityType.toUpperCase(Locale.ROOT) + "/" + publicCode;
+    }
 
     //genere l'image a partir code public
     @Transactional
@@ -1614,7 +1640,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     //transforme une entite metier e n image QR
     protected byte[] generateQrImageBytesFromEntity(E entity) {
-         try {
+        try {
             String json = getQrObjectMapper().writeValueAsString(entity);
             return renderQrContent(json);
         } catch (IOException e) {
@@ -1713,7 +1739,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         return code.trim().toUpperCase(Locale.ROOT);
     }
 
-    private QrResolveResponse buildResolveResponse(String publicCode, E entity) {
+    protected QrResolveResponse buildResolveResponse(String publicCode, E entity) {
         QrResolveResponse response = new QrResolveResponse();
         response.setEntityType(getEntityType());
         response.setPublicCode(publicCode);
@@ -1762,9 +1788,60 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     }
 
 
+    /**
+     * Override this method if a service needs a custom QR payload.
+     * By default we serialize the full entity graph once.
+     */
+    protected Object getQrPayload(E entity) {
+        return entity;
+    }
+
+
+    private void requireQrSupport() {
+        if (codeGenerator == null || qrConfig == null) {
+            throw new UnsupportedOperationException("QR support is not configured for this service.");
+        }
+    }
+
+
+    private byte[] renderQrPayload(Object payload) {
+        try {
+            String json = getQrObjectMapper().writeValueAsString(payload);
+            return renderQrContent(json, 300, 300);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize QR payload", e);
+        }
+    }
+
+    private byte[] renderQrContent(String content, int width, int height) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+            return baos.toByteArray();
+        } catch (WriterException | IOException e) {
+            throw new RuntimeException("Failed to generate QR image", e);
+        }
+    }
+
+    private QrCodeInfo persistQrInfo(E entity, String publicCode, String qrUrl, byte[] imageBytes) {
+        String imageBase64 = encodeBase64(imageBytes);
+        entity.setQrHex(publicCode);
+        entity.setQrImageBase64(imageBase64);
+        repository.save(entity);
+        return new QrCodeInfo(publicCode, qrUrl, imageBase64);
+    }
 
     private String encodeBase64(byte[] imageBytes) {
         return Base64.getEncoder().encodeToString(imageBytes);
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIgnoreProperties("qrImageBase64")
+    private abstract static class BaseEntityQrMixin {
     }
     //------QRCode----------//
 }
