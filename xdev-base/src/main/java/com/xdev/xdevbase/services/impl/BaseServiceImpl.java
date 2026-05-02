@@ -1611,8 +1611,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
         String publicCode = codeGenerator.generateUnique(repository::existsByQrHex);
         String qrUrl = buildQrUrl(resolveQrEntityType(entityType), publicCode);
         entity.setQrHex(publicCode);
-        byte[] imageBytes = 
-          (entity);
+        byte[] imageBytes = generateQrImageBytesFromEntity(entity);
+
         String imageBase64 = encodeBase64(imageBytes);
         entity.setQrImageBase64(imageBase64);
         repository.save(entity);
