@@ -77,6 +77,9 @@ public interface BaseController<E extends BaseEntity, INDTO extends BaseDto<E>, 
 
     @GetMapping("/resolve/{publicCode}")
     ResponseEntity<?> resolve(@PathVariable String publicCode);
+
+    @GetMapping("/search/by-code")
+    ResponseEntity<?> searchByCode(@RequestParam String code);
     //-------------Qr code-------------//
 }
 

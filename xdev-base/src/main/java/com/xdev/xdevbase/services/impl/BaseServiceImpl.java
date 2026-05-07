@@ -1770,13 +1770,27 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     public QrResolveResponse resolve(String publicCode) {
         String normalizedCode = normalizeSearchCode(publicCode);
-        UUID tenantId = TenantContext.getCurrentTenant();
-        E entity = (tenantId == null
-                ? repository.findByQrHex(normalizedCode)
-                : repository.findByQrHexAndTenantIdAndIsDeletedFalse(normalizedCode, tenantId))
+        E entity = findByCodeGeneric(normalizedCode)
                 .orElseThrow(() -> new EntityNotFoundException("Entity not found for code: " + normalizedCode));
 
         return buildResolveResponse(normalizedCode, entity);
+    }
+
+    private Optional<E> findByCodeGeneric(String normalizedCode) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        
+        // 1) Try tenant-aware case-insensitive search
+        if (tenantId != null) {
+            Optional<E> tenantMatch = repository.findByQrHexIgnoreCaseAndTenantIdAndIsDeletedFalse(normalizedCode, tenantId);
+            if (tenantMatch.isPresent()) return tenantMatch;
+        }
+
+        // 2) Try global case-insensitive search (as fallback or if no tenant)
+        Optional<E> globalMatch = repository.findByQrHexIgnoreCaseAndIsDeletedFalse(normalizedCode);
+        if (globalMatch.isPresent()) return globalMatch;
+
+        // 3) Legacy exact match fallback
+        return repository.findByQrHex(normalizedCode);
     }
 
 
@@ -1789,15 +1803,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
         try {
             String normalizedCode = normalizeSearchCode(code);
-            UUID tenantId = TenantContext.getCurrentTenant();
-            Optional<E> entity = tenantId == null
-                    ? repository.findByQrHex(normalizedCode)
-                    : repository.findByQrHexAndTenantIdAndIsDeletedFalse(normalizedCode, tenantId);
-
-            if (entity.isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(buildResolveResponse(normalizedCode, entity.get()));
+            return findByCodeGeneric(normalizedCode)
+                    .map(entity -> buildResolveResponse(normalizedCode, entity));
         } catch (UnsupportedOperationException ex) {
             return Optional.empty();
         } catch (Exception ex) {

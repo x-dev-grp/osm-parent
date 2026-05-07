@@ -36,5 +36,8 @@ public interface BaseRepository<E extends BaseEntity> extends JpaRepository<E, U
 
     Optional<E> findByQrHexAndTenantIdAndIsDeletedFalse(String qrHex, UUID tenantId);
 
+    Optional<E> findByQrHexIgnoreCaseAndIsDeletedFalse(String qrHex);
+
+    Optional<E> findByQrHexIgnoreCaseAndTenantIdAndIsDeletedFalse(String qrHex, UUID tenantId);
     //------QRCode----------//
 }

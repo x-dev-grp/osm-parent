@@ -534,5 +534,25 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error");
         }
     }
+
+    @Override
+    public ResponseEntity<?> searchByCode(String code) {
+        try {
+            if (code == null || code.isBlank()) {
+                return ResponseEntity.badRequest().body("code is required");
+            }
+
+            Optional<QrResolveResponse> response = baseService.searchByCode(code);
+            if (response.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entity not found for code: " + code);
+            }
+
+            return ResponseEntity.ok(response.get());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error");
+        }
+    }
     //----------------QRCode-----------------//
 }

@@ -71,6 +71,8 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
 
     QrResolveResponse resolve(String publicCode);
 
+    Optional<QrResolveResponse> searchByCode(String code);
+
 
 }
 
