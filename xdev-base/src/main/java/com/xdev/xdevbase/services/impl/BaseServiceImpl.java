@@ -2,8 +2,11 @@ package com.xdev.xdevbase.services.impl;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
@@ -1044,7 +1047,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     /**
      * Get value of a field from an entity
      *
-     * @param cls    entity object
+     * @param cls       entity object
      * @param fieldName fieldDetails
      * @return field value as string
      */
@@ -1607,17 +1610,110 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
 
     @Transactional
     public QrCodeInfo generateQrInfo(String entityType, UUID entityId) {
-        E entity = repository.findById(entityId).orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + entityId));
+
+        E entity = repository.findById(entityId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Entity not found with id: " + entityId));
+
         String publicCode = codeGenerator.generateUnique(repository::existsByQrHex);
-        String qrUrl = buildQrUrl(resolveQrEntityType(entityType), publicCode);
+
         entity.setQrHex(publicCode);
-        byte[] imageBytes = generateQrImageBytesFromEntity(entity);
+
+        // prevent recursive QR image embedding
+        entity.setQrImageBase64(null);
+
+        String qrUrl = buildQrUrl(resolveQrEntityType(entityType), publicCode);
+
+        // clean payload
+        Object payload = buildQrPayload(entity);
+
+        byte[] imageBytes = generateQrImageBytes(payload);
 
         String imageBase64 = encodeBase64(imageBytes);
+
         entity.setQrImageBase64(imageBase64);
+
         repository.save(entity);
+
         return new QrCodeInfo(publicCode, qrUrl, imageBase64);
     }
+    protected byte[] generateQrImageBytes(Object payload) {
+        try {
+            String json = getQrObjectMapper().writeValueAsString(payload);
+            return renderQrContent(json);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize QR payload", e);
+        }
+    }
+    protected Object buildQrPayload(E entity) {
+
+        ObjectMapper mapper = getQrObjectMapper().copy();
+
+        // remove null fields
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        ObjectNode root = mapper.valueToTree(entity);
+
+        cleanRootEntity(root);
+
+        return root;
+    }
+    private void cleanRootEntity(ObjectNode root) {
+
+        Iterator<Map.Entry<String, JsonNode>> fields = root.fields();
+
+        List<String> fieldsToRemove = new ArrayList<>();
+
+        while (fields.hasNext()) {
+
+            Map.Entry<String, JsonNode> field = fields.next();
+
+            JsonNode value = field.getValue();
+
+            // remove null values
+            if (value == null || value.isNull()) {
+                fieldsToRemove.add(field.getKey());
+                continue;
+            }
+
+            // remove nested entities / objects completely
+            if (value.isObject()) {
+                fieldsToRemove.add(field.getKey());
+                continue;
+            }
+
+            // remove arrays containing objects/entities
+            if (value.isArray()) {
+
+                boolean containsObjects = false;
+
+                for (JsonNode item : value) {
+                    if (item.isObject()) {
+                        containsObjects = true;
+                        break;
+                    }
+                }
+
+                if (containsObjects) {
+                    fieldsToRemove.add(field.getKey());
+                }
+            }
+        }
+
+        fieldsToRemove.forEach(root::remove);
+    }
+
+    private boolean isEntityNode(JsonNode node) {
+
+        if (!(node instanceof ObjectNode objectNode)) {
+            return false;
+        }
+
+        // Detect JPA entity-like object
+        return objectNode.has("id");
+    }
+
+
 
     private String buildQrUrl(String entityType, String publicCode) {
         return qrConfig.getBaseUrl() + "/" + entityType.toUpperCase(Locale.ROOT) + "/" + publicCode;

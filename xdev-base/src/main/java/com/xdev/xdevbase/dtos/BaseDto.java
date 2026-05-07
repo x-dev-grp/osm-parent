@@ -19,6 +19,7 @@ public class BaseDto<E extends BaseEntity> implements Serializable {
     private String createdBy;
     private String lastModifiedBy;
     private LocalDateTime lastModifiedDate;
+    private String qrHex;
 
     public LocalDateTime getCreatedDate() {
         return createdDate;
@@ -90,5 +91,13 @@ public class BaseDto<E extends BaseEntity> implements Serializable {
 
     public void setExternalId(UUID externalId) {
         this.externalId = externalId;
+    }
+
+    public String getQrHex() {
+        return qrHex;
+    }
+
+    public void setQrHex(String qrHex) {
+        this.qrHex = qrHex;
     }
 }
