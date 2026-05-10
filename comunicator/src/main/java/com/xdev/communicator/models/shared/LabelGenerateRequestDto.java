@@ -8,29 +8,77 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public class LabelGenerateRequestDto implements Serializable {
+
     private UUID lotId;
     private UUID packagingId;
     private UUID operatorId;
     private LocalDate packagingDate;
     private LabelLanguage language = LabelLanguage.FR;
     private LabelCategory labelCategory = LabelCategory.UNIT;
+    private String qualityGrade;
+    private String variety;
+
+    public UUID getLotId() {
+        return lotId;
+    }
+
+    public void setLotId(UUID lotId) {
+        this.lotId = lotId;
+    }
+
+    public UUID getPackagingId() {
+        return packagingId;
+    }
+
+    public void setPackagingId(UUID packagingId) {
+        this.packagingId = packagingId;
+    }
+
+    public UUID getOperatorId() {
+        return operatorId;
+    }
+
+    public void setOperatorId(UUID operatorId) {
+        this.operatorId = operatorId;
+    }
+
+    public LocalDate getPackagingDate() {
+        return packagingDate;
+    }
+
+    public void setPackagingDate(LocalDate packagingDate) {
+        this.packagingDate = packagingDate;
+    }
+
+    public LabelLanguage getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(LabelLanguage language) {
+        this.language = language;
+    }
 
     public LabelCategory getLabelCategory() {
         return labelCategory;
     }
-    public UUID getLotId() {
-        return lotId;
+
+    public void setLabelCategory(LabelCategory labelCategory) {
+        this.labelCategory = labelCategory;
     }
-    public UUID getPackagingId() {
-        return packagingId;
+
+    public String getQualityGrade() {
+        return qualityGrade;
     }
-    public LocalDate getPackagingDate() {
-        return packagingDate;
+
+    public void setQualityGrade(String qualityGrade) {
+        this.qualityGrade = qualityGrade;
     }
-    public LabelLanguage getLanguage() {
-        return language;
+
+    public String getVariety() {
+        return variety;
     }
-    public void setLanguage(LabelLanguage language) {
-        this.language = language;
+
+    public void setVariety(String variety) {
+        this.variety = variety;
     }
 }

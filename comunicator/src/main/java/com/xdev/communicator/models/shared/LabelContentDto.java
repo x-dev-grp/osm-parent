@@ -2,6 +2,7 @@ package com.xdev.communicator.models.shared;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.xdev.communicator.models.common.dtos.BaseDto;
+import com.xdev.communicator.models.enums.LabelCategory;
 import com.xdev.communicator.models.enums.LabelClaimType;
 import com.xdev.communicator.models.enums.LabelContentStatus;
 import com.xdev.communicator.models.enums.LabelLanguage;
@@ -16,6 +17,8 @@ import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LabelContentDto extends BaseDto {
+
+    private LabelCategory labelCategory;
     private UUID lotId;
     private UUID packagingId;
     private UUID operatorId;
@@ -30,6 +33,8 @@ public class LabelContentDto extends BaseDto {
     private String responsibleName;
     private String responsibleAddress;
     private String lotNumber;
+    private String variety;
+    private String qualityGrade;
     private String extractionMethod;
     private String sensoryProfile;
     private List<String> certifications = new ArrayList<>();
@@ -42,11 +47,25 @@ public class LabelContentDto extends BaseDto {
     private List<LabelSourceSnapshotDto> sourceSnapshots = new ArrayList<>();
     private List<LabelValidationIssueDto> validationIssues = new ArrayList<>();
 
+    public LabelCategory getLabelCategory() {
+        return labelCategory;
+    }
+
+    public void setLabelCategory(LabelCategory labelCategory) {
+        this.labelCategory = labelCategory;
+    }
+
+    public UUID getLotId() {
+        return lotId;
+    }
 
     public void setLotId(UUID lotId) {
         this.lotId = lotId;
     }
 
+    public UUID getPackagingId() {
+        return packagingId;
+    }
 
     public void setPackagingId(UUID packagingId) {
         this.packagingId = packagingId;
@@ -76,6 +95,9 @@ public class LabelContentDto extends BaseDto {
         this.language = language;
     }
 
+    public LocalDate getPackagingDate() {
+        return packagingDate;
+    }
 
     public void setPackagingDate(LocalDate packagingDate) {
         this.packagingDate = packagingDate;
@@ -145,6 +167,22 @@ public class LabelContentDto extends BaseDto {
         this.lotNumber = lotNumber;
     }
 
+    public String getVariety() {
+        return variety;
+    }
+
+    public void setVariety(String variety) {
+        this.variety = variety;
+    }
+
+    public String getQualityGrade() {
+        return qualityGrade;
+    }
+
+    public void setQualityGrade(String qualityGrade) {
+        this.qualityGrade = qualityGrade;
+    }
+
     public String getExtractionMethod() {
         return extractionMethod;
     }
@@ -166,7 +204,7 @@ public class LabelContentDto extends BaseDto {
     }
 
     public void setCertifications(List<String> certifications) {
-        this.certifications = certifications;
+        this.certifications = certifications != null ? certifications : new ArrayList<>();
     }
 
     public Set<LabelClaimType> getClaimTypes() {
@@ -174,7 +212,7 @@ public class LabelContentDto extends BaseDto {
     }
 
     public void setClaimTypes(Set<LabelClaimType> claimTypes) {
-        this.claimTypes = claimTypes;
+        this.claimTypes = claimTypes != null ? claimTypes : new LinkedHashSet<>();
     }
 
     public List<String> getMarketingClaims() {
@@ -182,7 +220,7 @@ public class LabelContentDto extends BaseDto {
     }
 
     public void setMarketingClaims(List<String> marketingClaims) {
-        this.marketingClaims = marketingClaims;
+        this.marketingClaims = marketingClaims != null ? marketingClaims : new ArrayList<>();
     }
 
     public String getFinalPayloadJson() {
@@ -222,7 +260,7 @@ public class LabelContentDto extends BaseDto {
     }
 
     public void setSourceSnapshots(List<LabelSourceSnapshotDto> sourceSnapshots) {
-        this.sourceSnapshots = sourceSnapshots;
+        this.sourceSnapshots = sourceSnapshots != null ? sourceSnapshots : new ArrayList<>();
     }
 
     public List<LabelValidationIssueDto> getValidationIssues() {
@@ -230,6 +268,6 @@ public class LabelContentDto extends BaseDto {
     }
 
     public void setValidationIssues(List<LabelValidationIssueDto> validationIssues) {
-        this.validationIssues = validationIssues;
+        this.validationIssues = validationIssues != null ? validationIssues : new ArrayList<>();
     }
 }

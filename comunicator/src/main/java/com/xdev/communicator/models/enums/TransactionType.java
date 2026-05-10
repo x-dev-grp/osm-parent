@@ -7,6 +7,7 @@ public enum TransactionType {
 
         RECEPTION_IN,
         TRANSFER_IN,
+        FILTRATION,
         SALE,
         EXCHANGE,
 

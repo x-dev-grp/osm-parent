@@ -28,6 +28,8 @@ public class LabelExportDto implements Serializable {
     private String responsibleName;
     private String responsibleAddress;
     private String lotNumber;
+    private String variety;
+    private String qualityGrade;
     private String extractionMethod;
     private String sensoryProfile;
     private List<String> certifications = new ArrayList<>();
@@ -109,6 +111,22 @@ public class LabelExportDto implements Serializable {
         this.lotNumber = lotNumber;
     }
 
+
+    public String getVariety() {
+        return variety;
+    }
+
+    public void setVariety(String variety) {
+        this.variety = variety;
+    }
+
+    public String getQualityGrade() {
+        return qualityGrade;
+    }
+
+    public void setQualityGrade(String qualityGrade) {
+        this.qualityGrade = qualityGrade;
+    }
 
     public void setExtractionMethod(String extractionMethod) {
         this.extractionMethod = extractionMethod;
