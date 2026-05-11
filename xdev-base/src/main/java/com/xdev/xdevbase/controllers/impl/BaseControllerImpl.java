@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -71,7 +72,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
             return ExceptionHandler.handleSingleException(this.getClass(), "findDtoByUuid", e);
         }
     }
-
+    @Transactional(readOnly = true)
     @Override
     public ResponseEntity<ApiResponse<E, OUTDTO>> fetchAll() {
         long startTime = System.currentTimeMillis();
@@ -88,7 +89,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
             return ExceptionHandler.handleException(this.getClass(), "fetchAll", e);
         }
     }
-
+    @Transactional(readOnly = true)
     @Override
     public ResponseEntity<ApiResponse<E, OUTDTO>> fetchAllPageable(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam(required = false, defaultValue = "createdDate") String sort, @RequestParam(required = false, defaultValue = "DESC") String direction
 
@@ -237,7 +238,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
         }
     }
 
-
+    @Transactional(readOnly = true)
     @Override
     public ResponseEntity<SearchResponse<E, OUTDTO>> advancedSearch(@RequestBody SearchData searchData, Authentication authentication) {
         long startTime = System.currentTimeMillis();
