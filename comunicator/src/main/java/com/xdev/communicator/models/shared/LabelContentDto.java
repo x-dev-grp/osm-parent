@@ -22,6 +22,7 @@ public class LabelContentDto extends BaseDto {
     private UUID lotId;
     private UUID packagingId;
     private UUID operatorId;
+    private UUID filtrationOperationId;
     private LabelContentStatus status;
     private LabelLanguage language;
     private LocalDate packagingDate;
@@ -77,6 +78,14 @@ public class LabelContentDto extends BaseDto {
 
     public void setOperatorId(UUID operatorId) {
         this.operatorId = operatorId;
+    }
+
+    public UUID getFiltrationOperationId() {
+        return filtrationOperationId;
+    }
+
+    public void setFiltrationOperationId(UUID filtrationOperationId) {
+        this.filtrationOperationId = filtrationOperationId;
     }
 
     public LabelContentStatus getStatus() {

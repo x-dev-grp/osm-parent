@@ -5,5 +5,6 @@ public enum LabelSourceType {
     UNIFIED_DELIVERY,
     PACKAGING,
     OPERATOR,
-    COMPANY_PROFILE
+    COMPANY_PROFILE,
+    FILTRATION_OPERATION
 }

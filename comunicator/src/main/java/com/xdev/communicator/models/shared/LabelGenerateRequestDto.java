@@ -17,6 +17,7 @@ public class LabelGenerateRequestDto implements Serializable {
     private LabelCategory labelCategory = LabelCategory.UNIT;
     private String qualityGrade;
     private String variety;
+    private UUID filtrationOperationId;
 
     public UUID getLotId() {
         return lotId;
@@ -80,5 +81,13 @@ public class LabelGenerateRequestDto implements Serializable {
 
     public void setVariety(String variety) {
         this.variety = variety;
+    }
+
+    public UUID getFiltrationOperationId() {
+        return filtrationOperationId;
+    }
+
+    public void setFiltrationOperationId(UUID filtrationOperationId) {
+        this.filtrationOperationId = filtrationOperationId;
     }
 }
