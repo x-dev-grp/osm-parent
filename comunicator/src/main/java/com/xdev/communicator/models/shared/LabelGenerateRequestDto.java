@@ -11,6 +11,7 @@ public class LabelGenerateRequestDto implements Serializable {
 
     private UUID lotId;
     private UUID packagingId;
+    private UUID productId;
     private UUID operatorId;
     private LocalDate packagingDate;
     private LabelLanguage language = LabelLanguage.FR;
@@ -33,6 +34,14 @@ public class LabelGenerateRequestDto implements Serializable {
 
     public void setPackagingId(UUID packagingId) {
         this.packagingId = packagingId;
+    }
+
+    public UUID getProductId() {
+        return productId;
+    }
+
+    public void setProductId(UUID productId) {
+        this.productId = productId;
     }
 
     public UUID getOperatorId() {

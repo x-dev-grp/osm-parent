@@ -20,6 +20,7 @@ public class LabelContentDto extends BaseDto {
 
     private LabelCategory labelCategory;
     private UUID lotId;
+    private UUID productId;
     private UUID packagingId;
     private UUID operatorId;
     private UUID filtrationOperationId;
@@ -62,6 +63,14 @@ public class LabelContentDto extends BaseDto {
 
     public void setLotId(UUID lotId) {
         this.lotId = lotId;
+    }
+
+    public UUID getProductId() {
+        return productId;
+    }
+
+    public void setProductId(UUID productId) {
+        this.productId = productId;
     }
 
     public UUID getPackagingId() {
