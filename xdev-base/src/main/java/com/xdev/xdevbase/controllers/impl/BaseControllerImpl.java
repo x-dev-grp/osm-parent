@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,6 +64,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
 
         try {
             OUTDTO result = baseService.findById(id);
+            attachPermittedActions(result, currentAuthentication());
             OSMLogger.logMethodExit(this.getClass(), "findDtoByUuid", result);
             OSMLogger.logPerformance(this.getClass(), "findDtoByUuid", startTime, System.currentTimeMillis());
             OSMLogger.logDataAccess(this.getClass(), "READ", this.getClass().getSimpleName());
@@ -80,6 +82,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
 
         try {
             List<OUTDTO> list = baseService.findAll();
+            attachPermittedActions(list, currentAuthentication());
             OSMLogger.logMethodExit(this.getClass(), "fetchAll", "Found " + list.size() + " entities");
             OSMLogger.logPerformance(this.getClass(), "fetchAll", startTime, System.currentTimeMillis());
             OSMLogger.logDataAccess(this.getClass(), "READ_ALL", this.getClass().getSimpleName());
@@ -99,11 +102,12 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
 
         try {
             Page<OUTDTO> pageResult = baseService.findAll(page, size, sort, direction);
+            List<OUTDTO> content = attachPermittedActions(pageResult.toList(), currentAuthentication());
             OSMLogger.logMethodExit(this.getClass(), "fetchAllPageable", "Page " + page + " with " + pageResult.getContent().size() + " entities");
             OSMLogger.logPerformance(this.getClass(), "fetchAllPageable", startTime, System.currentTimeMillis());
             OSMLogger.logDataAccess(this.getClass(), "READ_PAGEABLE", this.getClass().getSimpleName());
 
-            return ResponseEntity.ok(new ApiResponse<E, OUTDTO>(true, "Retrieved page " + page + " successfully", pageResult.toList()));
+            return ResponseEntity.ok(new ApiResponse<E, OUTDTO>(true, "Retrieved page " + page + " successfully", content));
         } catch (Exception e) {
             return ExceptionHandler.handleException(this.getClass(), "fetchAllPageable", e);
         }
@@ -118,6 +122,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
 
         try {
             OUTDTO savedEntity = baseService.save(dto);
+            attachPermittedActions(savedEntity, currentAuthentication());
             OSMLogger.logMethodExit(this.getClass(), "create", savedEntity);
             OSMLogger.logPerformance(this.getClass(), "create", startTime, System.currentTimeMillis());
             OSMLogger.logDataAccess(this.getClass(), "CREATE", this.getClass().getSimpleName());
@@ -137,6 +142,7 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
 
         try {
             OUTDTO savedEntity = baseService.update(dto);
+            attachPermittedActions(savedEntity, currentAuthentication());
             OSMLogger.logMethodExit(this.getClass(), "update", savedEntity);
             OSMLogger.logPerformance(this.getClass(), "update", startTime, System.currentTimeMillis());
             OSMLogger.logDataAccess(this.getClass(), "UPDATE", this.getClass().getSimpleName());
@@ -254,21 +260,9 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
                             ", Role: " + role + ", Resource: " + resource + ", Permissions: " + actions);
 
             SearchResponse<E, OUTDTO> response = baseService.search(searchData);
-            List<OUTDTO> dtos = response.getData().stream().peek(
-                    element -> {
-                        E entity = modelMapper.map(element, baseService.getEntityClass());
-                        Set<Action> filteredActions = baseService.actionsMapping(entity);
-                        Set<String> roles = Set.of("ADMIN", "OSMADMIN");
-                        if (!(roles.contains(role))) {
-                            filteredActions = filteredActions.stream().filter(
-                                    a -> actions.contains(a.name())
-                            ).collect(Collectors.toSet());
-                        }
-                        SortedSet<Action> sortedActions = new TreeSet<>(Comparator.comparing(Action::name));
-                        sortedActions.addAll(filteredActions);
-                        element.setActions(sortedActions);
-                    }
-            ).toList();
+            List<OUTDTO> dtos = response.getData().stream()
+                    .peek(element -> attachPermittedActions(element, authentication, role, actions))
+                    .toList();
             response.setData(dtos);
 
             OSMLogger.logMethodExit(this.getClass(), "advancedSearch", "Found " + dtos.size() + " entities with filtered actions");
@@ -286,26 +280,131 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
     }
 
     private String extractResourceRole(Authentication authentication) {
+        if (authentication == null) {
+            return "";
+        }
         // 1) Try to reflectively call getClaims() on the principal
         Object principal = authentication.getPrincipal();
         Map<String, Object> claims = null;
-        try {
-            Method m = principal.getClass().getMethod("getClaims");
-            Object maybeClaims = m.invoke(principal);
-            if (maybeClaims instanceof Map<?, ?>) {
-                claims = (Map<String, Object>) maybeClaims;
+        if (principal != null) {
+            try {
+                Method m = principal.getClass().getMethod("getClaims");
+                Object maybeClaims = m.invoke(principal);
+                if (maybeClaims instanceof Map<?, ?>) {
+                    claims = (Map<String, Object>) maybeClaims;
+                }
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                // principal does not expose claims; fall back to authorities
             }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            // principal doesn’t have getClaims() or something went wrong → we'll ignore
         }
 
         // 2) From the claims map pull out “authorities” if present
         List<String> rawAuthorities = Collections.emptyList();
         if (claims != null) {
-            return claims.get("role").toString();
+            Object role = claims.get("role");
+            if (role != null) {
+                return role.toString().toUpperCase().replace("ROLE_", "");
+            }
 
         }
-        return "ADMIN";
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(Objects::nonNull)
+                .map(String::toUpperCase)
+                .filter(authority -> authority.equals("ADMIN")
+                        || authority.equals("OSMADMIN")
+                        || authority.equals("ROLE_ADMIN")
+                        || authority.equals("ROLE_OSMADMIN"))
+                .map(authority -> authority.replace("ROLE_", ""))
+                .findFirst()
+                .orElse("");
+    }
+
+    private Authentication currentAuthentication() {
+        return SecurityContextHolder.getContext() != null ? SecurityContextHolder.getContext().getAuthentication() : null;
+    }
+
+    protected List<OUTDTO> attachPermittedActions(List<OUTDTO> dtos) {
+        return attachPermittedActions(dtos, currentAuthentication());
+    }
+
+    private List<OUTDTO> attachPermittedActions(List<OUTDTO> dtos, Authentication authentication) {
+        if (dtos == null || dtos.isEmpty()) {
+            return dtos;
+        }
+        String resource = getResourceName();
+        Set<String> actions = extractResourcePermissions(authentication, resource);
+        String role = extractResourceRole(authentication);
+        dtos.forEach(dto -> attachPermittedActions(dto, authentication, role, actions));
+        return dtos;
+    }
+
+    protected OUTDTO attachPermittedActions(OUTDTO dto) {
+        return attachPermittedActions(dto, currentAuthentication());
+    }
+
+    protected <DTO extends BaseDto<?>> DTO attachPermittedActions(DTO dto, String resource, Set<Action> availableActions) {
+        if (dto == null) {
+            return null;
+        }
+        Set<Action> filteredActions = filterPermittedActions(resource, availableActions);
+        SortedSet<Action> sortedActions = new TreeSet<>(Comparator.comparing(Action::name));
+        sortedActions.addAll(filteredActions);
+        dto.setActions(sortedActions);
+        return dto;
+    }
+
+    protected <DTO extends BaseDto<?>> List<DTO> attachPermittedActions(List<DTO> dtos, String resource, Set<Action> availableActions) {
+        if (dtos == null || dtos.isEmpty()) {
+            return dtos;
+        }
+        dtos.forEach(dto -> attachPermittedActions(dto, resource, availableActions));
+        return dtos;
+    }
+
+    private OUTDTO attachPermittedActions(OUTDTO dto, Authentication authentication) {
+        if (dto == null) {
+            return null;
+        }
+        String resource = getResourceName();
+        Set<String> actions = extractResourcePermissions(authentication, resource);
+        String role = extractResourceRole(authentication);
+        return attachPermittedActions(dto, authentication, role, actions);
+    }
+
+    private OUTDTO attachPermittedActions(OUTDTO dto, Authentication authentication, String role, Set<String> actions) {
+        if (dto == null) {
+            return null;
+        }
+        E entity = modelMapper.map(dto, baseService.getEntityClass());
+        Set<Action> filteredActions = filterPermittedActions(role, actions, baseService.actionsMapping(entity));
+        SortedSet<Action> sortedActions = new TreeSet<>(Comparator.comparing(Action::name));
+        sortedActions.addAll(filteredActions);
+        dto.setActions(sortedActions);
+        return dto;
+    }
+
+    private Set<Action> filterPermittedActions(String resource, Set<Action> availableActions) {
+        Authentication authentication = currentAuthentication();
+        return filterPermittedActions(
+                extractResourceRole(authentication),
+                extractResourcePermissions(authentication, resource),
+                availableActions
+        );
+    }
+
+    private Set<Action> filterPermittedActions(String role, Set<String> permittedActionNames, Set<Action> availableActions) {
+        if (availableActions == null || availableActions.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> adminRoles = Set.of("ADMIN", "OSMADMIN");
+        if (adminRoles.contains(role)) {
+            return new HashSet<>(availableActions);
+        }
+        Set<String> actions = permittedActionNames == null ? Collections.emptySet() : permittedActionNames;
+        return availableActions.stream()
+                .filter(action -> actions.contains(action.name()))
+                .collect(Collectors.toSet());
     }
 
     @SuppressWarnings("unchecked")
@@ -317,14 +416,16 @@ public abstract class BaseControllerImpl<E extends BaseEntity, INDTO extends Bas
         // 1) Try to reflectively call getClaims() on the principal
         Object principal = authentication.getPrincipal();
         Map<String, Object> claims = null;
-        try {
-            Method m = principal.getClass().getMethod("getClaims");
-            Object maybeClaims = m.invoke(principal);
-            if (maybeClaims instanceof Map<?, ?>) {
-                claims = (Map<String, Object>) maybeClaims;
+        if (principal != null) {
+            try {
+                Method m = principal.getClass().getMethod("getClaims");
+                Object maybeClaims = m.invoke(principal);
+                if (maybeClaims instanceof Map<?, ?>) {
+                    claims = (Map<String, Object>) maybeClaims;
+                }
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                // principal does not expose claims; fall back to authorities
             }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            // principal doesn’t have getClaims() or something went wrong → we'll ignore
         }
 
         // 2) From the claims map pull out “authorities” if present

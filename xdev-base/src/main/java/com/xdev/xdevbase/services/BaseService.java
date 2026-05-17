@@ -57,6 +57,9 @@ public interface BaseService<E extends BaseEntity, INDTO extends BaseDto<E>, OUT
     default Set<Action> actionsMapping(E entity) {
         Set<Action> actions = new HashSet<>();
         actions.add(Action.READ);
+        actions.add(Action.CREATE);
+        actions.add(Action.UPDATE);
+        actions.add(Action.DELETE);
         return actions;
     }
 

@@ -31,6 +31,7 @@ import com.xdev.xdevbase.services.BaseService;
 import com.xdev.xdevbase.services.GlobalCodeSearchContributor;
 import com.xdev.xdevbase.services.utils.SearchSpecificationBuilder;
 import com.xdev.xdevbase.utils.AuditHelper;
+import com.xdev.xdevbase.utils.BusinessCodeGenerator;
 import com.xdev.xdevbase.utils.OSMLogger;
 import jakarta.persistence.EntityNotFoundException;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -89,6 +90,9 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     @Autowired(required = false)
     private ObjectMapper objectMapper;
 
+    @Autowired(required = false)
+    private BusinessCodeGenerator businessCodeGenerator;
+
     // Constructor now only needs repository and modelMapper
 
 
@@ -123,6 +127,28 @@ public abstract class BaseServiceImpl<E extends BaseEntity, INDTO extends BaseDt
     @Override
     public Class<E> getEntityClass() {
         return this.entityClass;
+    }
+
+    protected String generateBusinessCode(String codeFieldName) {
+        return generateBusinessCode(codeFieldName, entityClass.getSimpleName());
+    }
+
+    protected String generateBusinessCode(String codeFieldName, String prefixSource) {
+        if (businessCodeGenerator != null) {
+            return businessCodeGenerator.generate(entityClass, codeFieldName, prefixSource);
+        }
+
+        String prefix = prefixSource == null ? entityClass.getSimpleName() : prefixSource;
+        String cleanedPrefix = prefix.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+        if (cleanedPrefix.length() < 2) {
+            cleanedPrefix = entityClass.getSimpleName().toUpperCase(Locale.ROOT).substring(0, 2);
+        } else {
+            cleanedPrefix = cleanedPrefix.substring(0, 2);
+        }
+
+        int yearSuffix = Year.now().getValue() % 100;
+        long nextSequence = repository.count() + 1;
+        return String.format(Locale.ROOT, "%s-%02d-%03d", cleanedPrefix, yearSuffix, nextSequence);
     }
 
     @Override
