@@ -10,6 +10,7 @@ import java.util.UUID;
 public class LabelGenerateRequestDto implements Serializable {
 
     private UUID lotId;
+    private UUID traceabilityLotId;
     private UUID packagingId;
     private UUID productId;
     private UUID operatorId;
@@ -26,6 +27,14 @@ public class LabelGenerateRequestDto implements Serializable {
 
     public void setLotId(UUID lotId) {
         this.lotId = lotId;
+    }
+
+    public UUID getTraceabilityLotId() {
+        return traceabilityLotId;
+    }
+
+    public void setTraceabilityLotId(UUID traceabilityLotId) {
+        this.traceabilityLotId = traceabilityLotId;
     }
 
     public UUID getPackagingId() {
