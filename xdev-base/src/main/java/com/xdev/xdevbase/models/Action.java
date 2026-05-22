@@ -29,6 +29,38 @@ public enum Action {
     GEN_PDF_PRODUCTION,
     APPROVE,
     REJECT,
-    MAINTENANCE
+    MAINTENANCE,
+    PLANNING,
+    DELIVERYHISTORY,
+    START,
+    PAUSE,
+    RESUME,
+    CLOSE,
+    SHIP,
+    DELIVER,
+    ADD_LINE,
+    REMOVE_LINE,
+    UPDATE_STATUS,
+    DRAFT,
+    FINALIZE,
+    EXPORT,
+    SYNC,
+    REPORT,
+    //Actions liées au stock / inventaire
+    ENTREE_STOCK ,
+
+    SORTIE_STOCK,
+
+    AJUSTER_STOCK,
+
+    ASSIGN_EMPLACEMENT,
+
+    RESERVER_STOCK,
+
+    LIBERER_STOCK,
+
+    CHECK_STOCK,
+
+    TRANSFERER_STOCK,
 
 }

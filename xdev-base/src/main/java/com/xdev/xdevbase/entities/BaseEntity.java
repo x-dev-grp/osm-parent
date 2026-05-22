@@ -43,6 +43,7 @@ public class BaseEntity implements Serializable {
     @NaturalId
     private UUID externalId;
 
+
     public UUID getExternalId() {
         return externalId;
     }
@@ -106,6 +107,35 @@ public class BaseEntity implements Serializable {
     public void setTenantId(UUID tenantId) {
         this.tenantId = tenantId;
     }
+
+
+    //-------------Qr code-------------//
+    @Column(name = "qr_hex", length = 6)
+    private String qrHex;
+
+    @Lob
+    @Column(name = "qr_image_base64", columnDefinition = "TEXT")
+    private String qrImageBase64;
+
+
+    public String getQrHex() {
+        return qrHex;
+    }
+
+    public void setQrHex(String qrHex) {
+        this.qrHex = qrHex;
+    }
+    public String getQrImageBase64() {
+        return qrImageBase64;
+    }
+
+    public void setQrImageBase64(String qrImageBase64) {
+        this.qrImageBase64 = qrImageBase64;
+    }
+
+    //-------------Qr code-------------//
+
+
 
     @PrePersist
     protected void onCreate() {

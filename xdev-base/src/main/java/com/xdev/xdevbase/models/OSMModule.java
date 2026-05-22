@@ -1,7 +1,7 @@
 package com.xdev.xdevbase.models;
 
 public enum OSMModule {
-    HR(0), RECEPTION(1), PRODUCTION(2), FINANCE(3), HABILITATION(4);
+    HR(0), RECEPTION(1), PRODUCTION(2), FINANCE(3), HABILITATION(4), INVENTAIR(5), CONDITIONING(6);
 
 
     private final int value;
