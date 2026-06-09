@@ -113,7 +113,6 @@ public class BaseEntity implements Serializable {
     @Column(name = "qr_hex", length = 6)
     private String qrHex;
 
-    @Lob
     @Column(name = "qr_image_base64", columnDefinition = "TEXT")
     private String qrImageBase64;
 
